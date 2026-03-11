@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import { Text, View, StyleSheet, Pressable} from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Mapbox, {MapView} from "@rnmapbox/maps";
+import TripMap from '../components/tripMap';
 
 Mapbox.setAccessToken("pk.eyJ1IjoidGhlZmxpZ2h0bGVzc2JpcmQiLCJhIjoiY21tazN3MTQzMWdybzJ3b2M4dHF0Y3JrZSJ9.vwuF1cIXhLfvYU-p1PL7Hw");
 Mapbox.setTelemetryEnabled(false);
@@ -13,7 +14,7 @@ export default function TripScreen() {
     return (
         <View style={styles.page}>
           <View style={styles.mapContainer}>
-            <MapView style={styles.map} />
+            <TripMap />
           </View>
         
           <View style={styles.controlsContainer}>
