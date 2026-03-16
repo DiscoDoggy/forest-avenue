@@ -1,14 +1,45 @@
-import { useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {View, StyleSheet, Platform, PermissionsAndroid} from 'react-native';
-import Mapbox, {MapView, LocationPuck} from "@rnmapbox/maps";
+import Mapbox, {MapView, LocationPuck, Camera} from "@rnmapbox/maps";
+import * as Location from 'expo-location';
+
 
 Mapbox.setAccessToken("pk.eyJ1IjoidGhlZmxpZ2h0bGVzc2JpcmQiLCJhIjoiY21tazN3MTQzMWdybzJ3b2M4dHF0Y3JrZSJ9.vwuF1cIXhLfvYU-p1PL7Hw");
 Mapbox.setTelemetryEnabled(false);
 
 export default function TripMap(){ 
-    useEffect(() => {
-        requestLocationPermission();
-    }, []);
+
+    const [getLocation, setLocation] = useState<Location.LocationObject | null>(null);
+    const camera = useRef<Camera>(null);
+    useEffect(() => {( async () => {
+        let locationSub: Location.LocationSubscription | null=null;
+
+        const hasPerms = await requestLocationPermission();
+        if(!hasPerms) { 
+            console.log('Permission to access location was denied');
+            return;
+        } 
+        const subscription = await Location.watchPositionAsync({
+                accuracy: Location.Accuracy.High,
+                distanceInterval: 5,
+                timeInterval: 5000
+        }, (location) => {
+            setLocation(location)
+            camera.current?.setCamera({
+                centerCoordinate: [location.coords.longitude, location.coords.latitude]
+            });
+            console.log('New location update: ' + location.coords.latitude + ', ' + location.coords.longitude);
+        });
+
+        locationSub = subscription;
+
+        return () => {
+            if(subscription) {
+                locationSub.remove();
+                console.log("location tracking paused or stopped");
+            }
+        } 
+    })()}, [])
 
     return (
         <View style={styles.map}>
@@ -21,6 +52,12 @@ export default function TripMap(){
                     puckBearing="heading"
                     pulsing={{ isEnabled: true }}
                 />
+
+                <Camera 
+                    ref={camera}
+                    zoomLevel={20.1} 
+                />
+
             </MapView>
         </View>
     );
