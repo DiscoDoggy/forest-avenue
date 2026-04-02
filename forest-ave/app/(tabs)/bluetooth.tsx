@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Text, View, StyleSheet, FlatList, Pressable, TextInput} from 'react-native';
 import RNBluetoothClassic, { BluetoothDevice } from 'react-native-bluetooth-classic';
+import { useBluetooth } from '../contexts/bluetoothContexts';
+
 
 interface BlueToothDeviceCardProps {
     btd: BluetoothDevice //bluetooth device
@@ -11,12 +13,12 @@ export default function BluetoothConnScreen() {
     // we want to have a list of bonded bluetooth devices
     // user selects the device they are currently connected to 
     // make sure bluetooth is even turned on
+    const {connectedDevice, setConnectedDevice, btdReceivedData} = useBluetooth();
 
     const [isBluetoothEnabled, setBluetoothEnabled] = useState(false);
     const [getBondedDevices, setBondedDevices]  = useState<BluetoothDevice[]>([]);
     const [getConnectedDeviceName, setConnectedDeviceName] = useState('no attempted connection');
-    const [getBtdReceivedData, setBtdReceivedData] = useState<string>('no data');
-    const [getBtd, setBtd] = useState<BluetoothDevice | null>(null);
+    // const [getBtd, setBtd] = useState<BluetoothDevice | null>(bluetoothDeviceContext.connectedDevice);
 
     const [getBtTextbox, setBtTextbox] = useState('placeholder');
 
@@ -42,28 +44,28 @@ export default function BluetoothConnScreen() {
     }, []);
 
     // should only be responsible for setting the subscription to incoming bluetooth data for a connected device
-    useEffect(() => {
-        let subscription: any;
-        if(getBtd !== null) {
-            console.log(`use effect currently connected device is ${getBtd?.name}`);
-        }
-        if(getBtd) {
-            console.log(`creating read subscription with ${getBtd.name}`);
-            subscription = getBtd.onDataReceived((event) => {
-                console.log(`message received from device ${getBtd.name}`);
-                console.log(`message: ${event.data}`);
-                setBtdReceivedData(event.data);
-            });
-        }
+    // useEffect(() => {
+    //     let subscription: any;
+    //     if(getBtd !== null) {
+    //         console.log(`use effect currently connected device is ${getBtd?.name}`);
+    //     }
+    //     if(getBtd) {
+    //         console.log(`creating read subscription with ${getBtd.name}`);
+    //         subscription = getBtd.onDataReceived((event) => {
+    //             console.log(`message received from device ${getBtd.name}`);
+    //             console.log(`message: ${event.data}`);
+    //             setBtdReceivedData(event.data);
+    //         });
+    //     }
 
-        return () => {
-            if(subscription && getBtd) {
-                console.log(`unsubscribing ${getBtd.name} from receiving data events`);
-                subscription.remove();
-            }
-        }
+    //     return () => {
+    //         if(subscription && getBtd) {
+    //             console.log(`unsubscribing ${getBtd.name} from receiving data events`);
+    //             subscription.remove();
+    //         }
+    //     }
 
-    }, [getBtd]);
+    // }, [getBtd]);
 
     const handleBtdConnect = async(btd: BluetoothDevice) => {
         let connection = await btd.isConnected();
@@ -74,7 +76,7 @@ export default function BluetoothConnScreen() {
         if(connection) {
             console.log(`connected to ${btd.name} successfully`);
             setConnectedDeviceName(btd.name);
-            setBtd(btd);
+            setConnectedDevice(btd);
             await btd.write("HELLO FROM PHONE\r");
         }
         else {
@@ -124,7 +126,7 @@ export default function BluetoothConnScreen() {
                 <TextInput 
                     onChangeText={setBtTextbox} 
                     value={getBtTextbox}
-                    onSubmitEditing={async ()=> {handleSendingBtdMsg(getBtd, getBtTextbox)}}
+                    onSubmitEditing={async ()=> {handleSendingBtdMsg(connectedDevice, getBtTextbox)}}
 
                 />
             </View>
@@ -139,7 +141,7 @@ export default function BluetoothConnScreen() {
                     Live Data:
                 </Text>
                 <Text style={styles.textRegularStyle}>
-                    {getBtdReceivedData}
+                    {btdReceivedData}
                 </Text>
             </View>
 
