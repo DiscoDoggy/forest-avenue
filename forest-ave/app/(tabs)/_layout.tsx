@@ -36,6 +36,16 @@ export default function TabsLayout() {
                         ),
                     }}
                 />
+
+                <Tabs.Screen 
+                    name="test_obd_dash" 
+                    options={{
+                        title: 'Test Dash',
+                        tabBarIcon: ({color, focused}) => (
+                            <Ionicons name={focused ? 'bar-chart-outline' : 'bar-chart-outline'} color={color} size={24} />
+                        ),
+                    }}
+                />
             </Tabs>
         </BluetoothDeviceContextProvider>
 
