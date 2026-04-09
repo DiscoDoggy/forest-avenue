@@ -1,5 +1,5 @@
 import { OBDPIDS } from "./obdiiCommands";
-import { expect, jest, test } from '@jest/globals';
+import { expect, test } from '@jest/globals';
 
 /*
 We assume OBD2 responds with 01 0C 27 10 which is the query for RPM. The returned

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Text, View, StyleSheet, FlatList, Pressable, TextInput} from 'react-native';
 import RNBluetoothClassic, { BluetoothDevice } from 'react-native-bluetooth-classic';
 import { useBluetooth } from '../contexts/bluetoothContexts';
-
+import { delimiter } from 'path';
+import { AT_CMDS, ELM327_RESPONSES } from '@/constants/obdiiCommands';
+import { readWithTimeout } from '../utils/readWithTimeout';
 
 interface BlueToothDeviceCardProps {
     btd: BluetoothDevice //bluetooth device
@@ -43,41 +45,42 @@ export default function BluetoothConnScreen() {
         })();
     }, []);
 
-    // should only be responsible for setting the subscription to incoming bluetooth data for a connected device
-    // useEffect(() => {
-    //     let subscription: any;
-    //     if(getBtd !== null) {
-    //         console.log(`use effect currently connected device is ${getBtd?.name}`);
-    //     }
-    //     if(getBtd) {
-    //         console.log(`creating read subscription with ${getBtd.name}`);
-    //         subscription = getBtd.onDataReceived((event) => {
-    //             console.log(`message received from device ${getBtd.name}`);
-    //             console.log(`message: ${event.data}`);
-    //             setBtdReceivedData(event.data);
-    //         });
-    //     }
-
-    //     return () => {
-    //         if(subscription && getBtd) {
-    //             console.log(`unsubscribing ${getBtd.name} from receiving data events`);
-    //             subscription.remove();
-    //         }
-    //     }
-
-    // }, [getBtd]);
-
     const handleBtdConnect = async(btd: BluetoothDevice) => {
         let connection = await btd.isConnected();
         if(!connection) {
-            connection = await btd.connect()
+            connection = await btd.connect({delimiter: '>'});
         }
 
         if(connection) {
             console.log(`connected to ${btd.name} successfully`);
             setConnectedDeviceName(btd.name);
+            
+            console.log('INITIALIZING OBD2 SETTINGS...');
+
+            console.log('running ATE0 to turn off echo');
+            const echo_off_cmd = AT_CMDS.ECHO_OFF;
+            const isWriteSuccessful = await btd.write(`${echo_off_cmd}\r`);
+            if(!isWriteSuccessful) {
+                throw new Error('failed to send ATE0 instruction');
+            }
+
+            let res: string = await readWithTimeout(btd, 5000, 100);
+            console.log(`ELM327 message: ${res}`);
+            res = res.trim();
+            console.log(`processed res: ${res}`);
+            if(res === ELM327_RESPONSES.UNKNOWN_CMD) {
+                throw new Error(`ELM327 received ${echo_off_cmd} but could not recognize command`);
+            } else if (res !== ELM327_RESPONSES.AT_CMD_SUCCESS) {
+                throw new Error(`ELM327 unknown error when running ${echo_off_cmd}`);
+            }
+
+            const bufClearSuccess = await btd.clear();
+            if(!bufClearSuccess) {
+                throw new Error(`Failed to clear device buffer`);
+            }
+
+            console.log('OBD2 SETUP COMPLETE');
             setConnectedDevice(btd);
-            await btd.write("HELLO FROM PHONE\r");
         }
         else {
             console.log(`failed to connect to any device`);
@@ -91,8 +94,8 @@ export default function BluetoothConnScreen() {
             console.error(`bluetooth device is null`);
             return;
         }
-        
-        if(!btd.isConnected()) {
+        const isDeviceConnected = await btd.isConnected();
+        if(!isDeviceConnected) {
             console.error(`Attempted to send bluetooth message but no device connected`);
             return;
         }

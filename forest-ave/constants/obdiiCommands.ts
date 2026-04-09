@@ -1,6 +1,6 @@
 
 
-type OBDPIDProcessor = (OBDHexOutput: string) => number | string;
+export type OBDPIDProcessor = (OBDHexOutput: string) => number | string;
 
 class OBDPIDCmd {
     name: string;
@@ -54,9 +54,25 @@ export const OBDPIDS = {
         const IAT = parseInt(hexArr[2], 16);
         return IAT - 40; 
     }),
-
-
 }
+
+export enum AT_CMDS {
+    ECHO_OFF = 'ATE0'
+};
+
+export const hexResToPID: Record<string, OBDPIDCmd> = {
+    '41 0C': OBDPIDS.RPM,
+    '41 10': OBDPIDS.MAF,
+    '41 0B': OBDPIDS.MAP,
+    '41 0D': OBDPIDS.vehicleSpeed,
+    '41 0F': OBDPIDS.IAT
+};
+
+export enum ELM327_RESPONSES {
+    UNKNOWN_CMD = "?",
+    NO_DATA = "NO DATA",
+    AT_CMD_SUCCESS = "OK"
+};
 
 function processAndValidateObdIIOutputHex(hex: string, maxCmdBytes: number) : string[] {
     const hexArr = hex.split(' ');
