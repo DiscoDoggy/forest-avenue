@@ -3,7 +3,7 @@ import { Text, View, StyleSheet, FlatList, Pressable, TextInput} from 'react-nat
 import RNBluetoothClassic, { BluetoothDevice } from 'react-native-bluetooth-classic';
 import { useBluetooth } from '../contexts/bluetoothContexts';
 import { delimiter } from 'path';
-import { AT_CMDS, ELM327_RESPONSES } from '@/constants/obdiiCommands';
+import { AT_CMDS, ELM327_RESPONSES } from '@/app/utils/obdiiCommands';
 import { readWithTimeout } from '../utils/readWithTimeout';
 
 interface BlueToothDeviceCardProps {

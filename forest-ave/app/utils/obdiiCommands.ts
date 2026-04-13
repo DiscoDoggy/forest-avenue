@@ -1,6 +1,9 @@
+import { BluetoothDevice } from "react-native-bluetooth-classic";
+import { handleSendOBDCmd } from "./sendOBDCmds";
 
 
 export type OBDPIDProcessor = (OBDHexOutput: string) => number | string;
+export type OBDCmdRunner = (OBDCmd: string) => number | string;
 
 class OBDPIDCmd {
     name: string;
@@ -11,6 +14,13 @@ class OBDPIDCmd {
         this.name = name;
         this.command = command;
         this.processor = processor;
+    }
+
+    async runCmdOnOBD(btd: BluetoothDevice | null) {
+        if(btd === null) {
+            throw new Error(`attempted to run ${this.name} but bluetooth device was null`);
+        }
+        await handleSendOBDCmd(btd, this.command);
     }
 }
 
@@ -54,6 +64,18 @@ export const OBDPIDS = {
         const IAT = parseInt(hexArr[2], 16);
         return IAT - 40; 
     }),
+
+    STFT1: new OBDPIDCmd('Short Term Fuel Trim Bank 1', '01 06', (obdHexOutput) => {
+        const hexArr = processAndValidateObdIIOutputHex(obdHexOutput, 1);
+        const STFT = parseInt(hexArr[2], 16);
+        return (STFT / 1.28)  - 100;
+    }),
+
+    LTFT1: new OBDPIDCmd('Long Term Fuel Trim Bank 1', '01 07', (obdHexOutput) => {
+        const hexArr = processAndValidateObdIIOutputHex(obdHexOutput, 1);
+        const LTFT= parseInt(hexArr[2], 16);
+        return (LTFT / 1.28)  - 100;
+    })
 }
 
 export enum AT_CMDS {

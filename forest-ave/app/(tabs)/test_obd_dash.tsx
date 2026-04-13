@@ -3,21 +3,24 @@ import { View, TextInput, Text, Button } from 'react-native';
 
 import { useBluetooth } from '../contexts/bluetoothContexts';
 
-import { OBDPIDProcessor, OBDPIDS } from '@/constants/obdiiCommands';
+import { OBDPIDProcessor, OBDPIDS } from '@/app/utils/obdiiCommands';
 
 import { Buffer } from 'buffer';
+import { handleSendOBDCmd } from '../utils/sendOBDCmds';
+import { calculateInstMPG, calculateInstMPGWithoutFuelTrims } from '../utils/mpg';
 
 export default function BtObd2TestScreen() {
-    const {connectedDevice, btdReceivedData} = useBluetooth();
+    const {connectedDevice, readChannel, btdReceivedData} = useBluetooth();
 
     const noCurrDataStr = 'no current data';
     const noPrevDataStr = 'no previous data';
     const [cmdTxtBox, setCmdTxtBox] = useState('');
 
-    const [prevDataTxt, setPrevDataTxt] = useState<string | number>(noPrevDataStr);
-    const prevDataRef = useRef<string | number>(noPrevDataStr);
+    const [prevDataTxt, setPrevDataTxt] = useState<string | number | null>(noPrevDataStr);
+    const prevDataRef = useRef<string | number | null>(noPrevDataStr);
 
-    const [currDataTxt, setCurrDataTxt]  = useState<string | number>(noCurrDataStr);
+    const [currDataTxt, setCurrDataTxt]  = useState<string | number | null>(noCurrDataStr);
+    const [mpg, setMPG] = useState(-1);
 
     useEffect(() => {
         setPrevDataTxt(prevDataRef.current);
@@ -26,20 +29,29 @@ export default function BtObd2TestScreen() {
 
     }, [btdReceivedData]);
 
-    const handleSendOBDCmd = async(cmd: string) => {
+    const calcMPG = async () => {
+        try {
+            // await OBDPIDS.STFT1.runCmdOnOBD(connectedDevice);
+            // const STFT = await readChannel.readWithTimeout() as number;
+            // console.log(`STFT: ${STFT}`);
 
-        console.log(`attempting to send message: ${cmd} to device: ${connectedDevice?.name}`);
-        if(connectedDevice === null || !connectedDevice.isConnected()) {
-            console.error(`error: connection to OBDII device could not be established`);
-            return;
-        }
-        // const finalCmd = cmd.replace(/\s+/g, '').toUpperCase();
-        // const base64Data = Buffer.from(finalCmd, 'ascii').toString('base64');
+            // await OBDPIDS.LTFT1.runCmdOnOBD(connectedDevice);
+            // const LTFT = await readChannel.readWithTimeout() as number;
+            // console.log(`LTFT: ${LTFT}`);
 
-        const isMsgSendSuccess = await connectedDevice.write(`${cmd}\r`);
-        if(!isMsgSendSuccess) {
-            console.error(`error: ${cmd} to obd2 device failed`);
-            return;
+            await OBDPIDS.vehicleSpeed.runCmdOnOBD(connectedDevice);
+            const vehicleSpeed = await readChannel.readWithTimeout() as number;
+            console.log(`LTFT: ${vehicleSpeed}`);
+
+            await OBDPIDS.MAF.runCmdOnOBD(connectedDevice);
+            const MAF = await readChannel.readWithTimeout() as number;
+            console.log(`MAF: ${MAF}`);
+            
+            // const mpg = calculateInstMPG(STFT, LTFT, MAF, vehicleSpeed);
+            const mpg = calculateInstMPGWithoutFuelTrims(MAF, vehicleSpeed);
+            setMPG(mpg);
+        } catch(error) {
+            console.error(`error getting components for gas mileage calculation: ${error}`);
         }
     }
 
@@ -49,30 +61,36 @@ export default function BtObd2TestScreen() {
                 <TextInput 
                     onChangeText={setCmdTxtBox} 
                     value={cmdTxtBox}
-                    onSubmitEditing={async () => {await handleSendOBDCmd(cmdTxtBox)}}
+                    onSubmitEditing={async () => {await handleSendOBDCmd(connectedDevice, cmdTxtBox)}}
                 />
             </View>
 
             <Button
                 title='RPM' 
-                onPress={async () => {await handleSendOBDCmd(OBDPIDS.RPM.command)}}
+                onPress={async () => {await OBDPIDS.RPM.runCmdOnOBD(connectedDevice)}}
             />
             <Button 
                 title='MAF' 
-                onPress={async () => {await handleSendOBDCmd(OBDPIDS.MAF.command)}}
+                onPress={async () => {await OBDPIDS.MAF.runCmdOnOBD(connectedDevice)}}
             />
             <Button 
                 title='MAP' 
-                onPress={async () => {await handleSendOBDCmd(OBDPIDS.MAP.command)}}
+                onPress={async () => {await OBDPIDS.MAP.runCmdOnOBD(connectedDevice)}}
             />
             <Button 
                 title='VSS' 
-                onPress={async () => {await handleSendOBDCmd(OBDPIDS.vehicleSpeed.command)}}
+                onPress={async () => {await OBDPIDS.vehicleSpeed.runCmdOnOBD(connectedDevice)}}
             />
             <Button 
                 title='IAT' 
-                onPress={async () => {await handleSendOBDCmd(OBDPIDS.IAT.command)}}
+                onPress={async () => {await OBDPIDS.IAT.runCmdOnOBD(connectedDevice)}}
             />
+
+            <Button 
+                title='Calculate Gas Mileage'
+                onPress={async () => {await calcMPG()}}
+            />
+
 
             <Text>
                 Previous Data Received:
@@ -86,6 +104,14 @@ export default function BtObd2TestScreen() {
             </Text>
             <Text>
                 {currDataTxt}
+            </Text>
+
+            <Text>
+                current gas mileage:
+            </Text>
+
+            <Text>
+                {mpg}
             </Text>
         </View>
     )

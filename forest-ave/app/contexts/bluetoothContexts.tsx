@@ -1,18 +1,57 @@
-import { hexResToPID } from "@/constants/obdiiCommands";
-import { createContext, useContext, useEffect, useState } from "react";
+import { hexResToPID } from "@/app/utils/obdiiCommands";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { BluetoothDevice } from "react-native-bluetooth-classic";
+
+class BtdReadChannel {
+    data: string | number | null;
+
+    constructor() {
+        this.data = null;
+    }
+
+    async readWithTimeout() {
+        const TIMEOUT = 1500;
+        const POLL_FREQ = 200;
+
+        const startTime = Date.now();
+
+        while(Date.now() < startTime + TIMEOUT) {
+            if(this.data !== null) {
+                const out = this.data;
+                this.clearBuffer();
+                return out;
+            }
+
+            await new Promise<void>((resolve) => setTimeout(resolve, POLL_FREQ));
+        }
+
+        throw new Error(`btd read channel error: no messages found in ${TIMEOUT} ms`);
+    }
+
+    writeChannel(data: string | number | null) {
+        this.data = data;
+    }
+
+    clearBuffer() {
+        this.data = null;
+    }
+
+
+}
 
 interface BluetoothContextType {
     connectedDevice: BluetoothDevice | null;
     setConnectedDevice: (device: BluetoothDevice | null) => void;
-    btdReceivedData: string | number;
+    readChannel: BtdReadChannel;
+    btdReceivedData: string | number | null;
 }
 
 export const BluetoothDeviceContext = createContext<BluetoothContextType | null>(null);
 
 export const BluetoothDeviceContextProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
     const [connectedDevice, setConnectedDevice] = useState<BluetoothDevice | null>(null);
-    const [btdReceivedData, setBtdReceivedData] = useState<string | number>('no data yet');
+    const [btdReceivedData, setBtdReceivedData] = useState<string | number | null>('no data received');
+    const readChannel = useRef(new BtdReadChannel());
 
     useEffect(() => {
         let subscription: any;
@@ -30,11 +69,13 @@ export const BluetoothDeviceContextProvider: React.FC<{children: React.ReactNode
                 if(!(modeAndPin in hexResToPID)) {
                     console.error(`OBD command Key error: no valid OBD data returned. Got: ${event.data}`);
                     setBtdReceivedData(event.data);
+                    readChannel.current.writeChannel(event.data);
                 } else {
                     const hexPidType = hexResToPID[modeAndPin];
                     const processedValue = hexPidType.processor(event.data);
                     console.log(`successfully received response from OBD2: ${event.data}, processed: ${processedValue}`);
                     setBtdReceivedData(processedValue);
+                    readChannel.current.writeChannel(processedValue);
                 }
             });
         }
@@ -49,7 +90,7 @@ export const BluetoothDeviceContextProvider: React.FC<{children: React.ReactNode
     }, [connectedDevice]);
 
     return (
-        <BluetoothDeviceContext.Provider value={{connectedDevice, setConnectedDevice, btdReceivedData}}>
+        <BluetoothDeviceContext.Provider value={{connectedDevice, setConnectedDevice, btdReceivedData, readChannel: readChannel.current}}>
             {children}
         </BluetoothDeviceContext.Provider>
     )
