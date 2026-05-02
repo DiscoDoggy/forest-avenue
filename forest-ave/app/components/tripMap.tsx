@@ -3,7 +3,9 @@ import { View, StyleSheet, Platform, PermissionsAndroid } from 'react-native';
 import Mapbox, { MapView, LocationPuck, Camera, ShapeSource, LineLayer, LineLayerStyle, CircleLayer, CircleLayerStyle, SymbolLayer, SymbolLayerStyle } from "@rnmapbox/maps";
 import * as Location from 'expo-location';
 import { Feature, FeatureCollection, Geometry } from 'geojson';
-
+import { useBluetooth } from '../contexts/bluetoothContexts';
+import { OBDPIDS } from '../utils/obdiiCommands';
+import { calculateInstMPGWithoutFuelTrims } from '../utils/mpg';
 
 Mapbox.setAccessToken("pk.eyJ1IjoidGhlZmxpZ2h0bGVzc2JpcmQiLCJhIjoiY21tazN3MTQzMWdybzJ3b2M4dHF0Y3JrZSJ9.vwuF1cIXhLfvYU-p1PL7Hw");
 Mapbox.setTelemetryEnabled(false);
@@ -21,6 +23,9 @@ export default function TripMap({ isTripStarted, isTripPaused, isTripStopped }: 
     const camera = useRef<Camera>(null);
     const [getTripCoords, setTripCoords] = useState<number[][]>([]);
 
+    const {connectedDevice, readChannel, btdReceivedData} = useBluetooth();
+
+
     const [getGeoTripData, setGeoTripData] = useState<FeatureCollection<Geometry>>({ 
         type: 'FeatureCollection',
         features: [
@@ -34,6 +39,38 @@ export default function TripMap({ isTripStarted, isTripPaused, isTripStopped }: 
             },
         ]}
     );
+
+    //calculate gas mileage from OBD2
+    const getMPG = useCallback(async(): Promise<number> => {
+
+        try {
+            // await OBDPIDS.STFT1.runCmdOnOBD(connectedDevice);
+            // const STFT= await readChannel.readWithTimeout() as number;
+            // console.log(`STFT: ${STFT}`);
+
+            // await OBDPIDS.LTFT1.runCmdOnOBD(connectedDevice);
+            // const LTFT = await readChannel.readWithTimeout() as number;
+            // console.log(`LTFT: ${LTFT}`);
+
+            await OBDPIDS.vehicleSpeed.runCmdOnOBD(connectedDevice);
+            const vehicleSpeed = await readChannel.readWithTimeout() as number;
+            console.log(`vehicle speed: ${vehicleSpeed}`);
+
+            await OBDPIDS.MAF.runCmdOnOBD(connectedDevice);
+            const MAF = await readChannel.readWithTimeout() as number;
+            console.log(`MAF: ${MAF}`);
+            
+            // const mpg = calculateInstMPG(STFT, LTFT, MAF, vehicleSpeed);
+            const mpg = calculateInstMPGWithoutFuelTrims(MAF, vehicleSpeed);
+            return mpg;
+
+        } catch(error) {
+            console.error(`error getting components for gas mileage calculation: ${error}`);
+        }
+
+        return -1;
+        
+    }, [connectedDevice, readChannel]);
 
     const updateGeoTripData = useCallback((longitude: number, latitude: number, avgMpg: number) => {
         const newPoint: Feature<Geometry> = {
@@ -81,13 +118,14 @@ export default function TripMap({ isTripStarted, isTripPaused, isTripStopped }: 
                     accuracy: Location.Accuracy.High,
                     distanceInterval: 1,
                     timeInterval: 5000
-                }, (location) => {
+                }, async (location) => {
                     setLocation(location)
                     camera.current?.setCamera({
                         centerCoordinate: [location.coords.longitude, location.coords.latitude]
                     });
 
-                    updateGeoTripData(location.coords.longitude, location.coords.latitude, Math.random() + 26);
+                    const mpg = await getMPG();
+                    updateGeoTripData(location.coords.longitude, location.coords.latitude, mpg);
 
                     console.log('New location update: ' + location.coords.latitude + ', ' + location.coords.longitude);
                 });
@@ -103,7 +141,7 @@ export default function TripMap({ isTripStarted, isTripPaused, isTripStopped }: 
             }
         };
 
-    }, [isTripStarted, isTripPaused, isTripStopped, updateGeoTripData])
+    }, [isTripStarted, isTripPaused, isTripStopped, updateGeoTripData, getMPG])
 
     return (
         <View style={styles.map}>

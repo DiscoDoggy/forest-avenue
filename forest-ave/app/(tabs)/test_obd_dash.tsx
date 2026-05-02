@@ -41,7 +41,7 @@ export default function BtObd2TestScreen() {
 
             await OBDPIDS.vehicleSpeed.runCmdOnOBD(connectedDevice);
             const vehicleSpeed = await readChannel.readWithTimeout() as number;
-            console.log(`LTFT: ${vehicleSpeed}`);
+            console.log(`vehicle speed: ${vehicleSpeed}`);
 
             await OBDPIDS.MAF.runCmdOnOBD(connectedDevice);
             const MAF = await readChannel.readWithTimeout() as number;

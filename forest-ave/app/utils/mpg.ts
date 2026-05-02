@@ -1,4 +1,4 @@
-import { IDEAL_AIR_FUEL_RATIO, KPH_TO_MPH_MULTIPLIER, SECONDS_PER_HOUR, GRAMS_PER_POUND, POUNDS_OF_GAS_PER_GALLON, FUEL_DENSITY } from "@/constants/mpgConstants";
+import { IDEAL_AIR_FUEL_RATIO, KPH_TO_MPH_MULTIPLIER, SECONDS_PER_HOUR, GRAMS_PER_POUND, POUNDS_OF_GAS_PER_GALLON, FUEL_DENSITY, LITERS_FUEL_IN_GALLON, KILOMETERS_PER_MILE } from "@/constants/mpgConstants";
 
 export function calculateInstMPG(STFT: number, LTFT: number, MAF: number, vehicleSpeed: number): number {
     const trimMultiplier = 1 + ((STFT + LTFT) / 100); 
@@ -9,9 +9,11 @@ export function calculateInstMPG(STFT: number, LTFT: number, MAF: number, vehicl
     return speedInMPH / denominator;
 }
 
-export function calculateInstMPGWithoutFuelTrims(MAF: number, vehicleSpeed: number): number {
-    const fuelFlow = MAF / (IDEAL_AIR_FUEL_RATIO * FUEL_DENSITY);
-    const mpg = vehicleSpeed / fuelFlow;
+export function calculateInstMPGWithoutFuelTrims(MAF: number, VSS: number) {
+    let ffr = MAF / IDEAL_AIR_FUEL_RATIO; // grams per second
+    ffr = ffr / (FUEL_DENSITY * LITERS_FUEL_IN_GALLON); // gallons per second
 
-    return mpg;
+    const distRate = VSS / (KILOMETERS_PER_MILE * SECONDS_PER_HOUR); // miles per second
+    
+    return distRate / ffr;
 }
