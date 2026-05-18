@@ -5,7 +5,7 @@ import { handleSendOBDCmd } from "./sendOBDCmds";
 export type OBDPIDProcessor = (OBDHexOutput: string) => number | string;
 export type OBDCmdRunner = (OBDCmd: string) => number | string;
 
-class OBDPIDCmd {
+export class OBDPIDCmd {
     name: string;
     command: string;
     processor: OBDPIDProcessor;
