@@ -2,7 +2,7 @@ import { BluetoothDevice } from "react-native-bluetooth-classic";
 import { handleSendOBDCmd } from "./sendOBDCmds";
 
 
-export type OBDPIDProcessor = (OBDHexOutput: string) => number | string;
+export type OBDPIDProcessor = (OBDHexOutput: string) => number;
 export type OBDCmdRunner = (OBDCmd: string) => number | string;
 
 export class OBDPIDCmd {

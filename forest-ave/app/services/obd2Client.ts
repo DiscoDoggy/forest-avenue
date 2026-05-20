@@ -82,6 +82,7 @@ export class OBD2Client {
         console.log(`\tTurning echo off`);
         try {
             const obd2Res = await this.queryOBD2(AT_CMDS.ECHO_OFF);
+            console.log(`ascii numbers of obd2res: ${obd2Res.charCodeAt(0)}, size of response: ${obd2Res.length}`);
             if(obd2Res !== ELM327_RESPONSES.AT_CMD_SUCCESS) {
                 throw new Error(`AT command unsuccessful: got ${obd2Res}`);
             }
@@ -97,27 +98,36 @@ export class OBD2Client {
     private handleBtdBufferData(data: string) {
         if(this.currWriteQueryReq === null) return;
 
+        console.log(`DATA RECEIVED IN HANDLE BTD BUFFER DATA: ${data}`);
+
         const timeoutId = this.currWriteQueryReq.timeoutId;
 
         if(data.includes('?')) {
             throw new Error(`obd2 error processing command: ${this.currWriteQueryReq.command}`);
         }
 
-        const isMsgComplete = data.includes('>');
-        if(isMsgComplete) {
-            //remove the > character
-            const processedData = data.replace('>', '');
-            const currData = this.readBuffer + processedData;
+        const currData = this.readBuffer + data;
+        this.readBuffer = '';
+        const currReqCopy = this.currWriteQueryReq;
+        this.currWriteQueryReq= null;
+        
+        currReqCopy.resolve(currData.trim());
 
-            //clean up
-            this.readBuffer = '';
-            const currReqCopy = this.currWriteQueryReq;
-            this.currWriteQueryReq= null;
+        // const isMsgComplete = data.includes('>');
+        // if(isMsgComplete) {
+        //     //remove the > character
+        //     const processedData = data.replace('>', '');
+        //     const currData = this.readBuffer + processedData;
+
+        //     //clean up
+        //     this.readBuffer = '';
+        //     const currReqCopy = this.currWriteQueryReq;
+        //     this.currWriteQueryReq= null;
             
-            currReqCopy.resolve(currData);
-        } else {
-            this.readBuffer += data;
-        }
+        //     currReqCopy.resolve(currData);
+        // } else {
+        //     this.readBuffer += data;
+        // }
 
         clearTimeout(timeoutId);
     }

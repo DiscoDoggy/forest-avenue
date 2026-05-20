@@ -58,18 +58,28 @@ export class MpgPollingService {
 
     private async pollMPG() {
         let maf: string = '';
+        let processedMAF: number = Infinity;
+
         let vss: string = '';
+        let processedVSS: number = -Infinity
 
         try {
             maf = await this.obdClient.queryOBD2(OBDPIDS.MAF.command);
+            processedMAF = OBDPIDS.MAF.processor(maf);
+
             vss = await this.obdClient.queryOBD2(OBDPIDS.vehicleSpeed.command);
+            processedVSS = OBDPIDS.vehicleSpeed.processor(vss);
+            
         } catch(error) {
             console.error('failed fetch data from obd2 client necessary for mpg calculation', error);
         }
 
-        const mpg = calculateInstMPGWithoutFuelTrims(parseFloat(maf), parseInt(vss));
+        const mpg = calculateInstMPGWithoutFuelTrims(processedMAF, processedVSS);
         return mpg;
     }
 
 }
 
+// TODO: we want to create an intialization that tests the different PIDs I have available to 
+// determine which mpg polling method we weant to use. Right now this would only include 
+// with fuel trim based calculation or using fixed fuel air ratio

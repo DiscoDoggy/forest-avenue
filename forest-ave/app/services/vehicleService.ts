@@ -25,6 +25,7 @@ export class VehicleService {
         }
 
         this.obd2Client = new OBD2Client(btd);
+        this.mpgPollingService = new MpgPollingService(this.obd2Client);
     }
 
     async disconnect() {
@@ -35,3 +36,5 @@ export class VehicleService {
         this.obd2Client.removeBtdConnection();
     }
 }
+
+export const vehicleService = new VehicleService();
