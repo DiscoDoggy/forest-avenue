@@ -1,13 +1,26 @@
 import { calculateInstMPGWithoutFuelTrims } from "../utils/mpg";
 import { OBDPIDS } from "../utils/obdiiCommands";
+import { setWholeState } from "./mpgStateStore";
 import { OBD2Client } from "./obd2Client";
+
+type MpgRecord = {
+    maf: number | null
+    vehicleSpeed: number | null
+
+    stft: number | null
+    ltft: number | null
+
+    mpg: number
+
+    mpgQueryStartTime: number | null
+}
 
 export class MpgPollingService {
     obdClient!: OBD2Client;
     isPollingEnabled: boolean;
 
     constructor(obdClient: OBD2Client) {
-        obdClient = obdClient;
+        this.obdClient = obdClient;
         this.isPollingEnabled = false;
     }
 
@@ -30,12 +43,23 @@ export class MpgPollingService {
 
     private async pollMPGOnce() {
         const startTime = Date.now();
-        const mpg = await this.pollMPG();
-
-        // write to storage the mpg
-
+        const mpgRecord = await this.pollMPG();
         const endTime = Date.now();
+
         const jobTimeElapsed = endTime - startTime;
+        mpgRecord.mpgQueryStartTime = startTime;
+        // write to storage the mpg which should trigger the application state to change if things are subscribed 
+        // to members of these fields 
+        // our syncronoization strategy makes a makes a big assumption:
+            // that the mpg is changed in the state after all other components 
+        setWholeState(
+            mpgRecord.maf,
+            mpgRecord.vehicleSpeed,
+            mpgRecord.stft,
+            mpgRecord.ltft,
+            mpgRecord.mpg,
+            mpgRecord.mpgQueryStartTime
+        );
 
         this.scheduleNextJob(jobTimeElapsed, 500);
     }
@@ -56,7 +80,7 @@ export class MpgPollingService {
         }
     }
 
-    private async pollMPG() {
+    async pollMPG() {
         let maf: string = '';
         let processedMAF: number = Infinity;
 
@@ -75,7 +99,19 @@ export class MpgPollingService {
         }
 
         const mpg = calculateInstMPGWithoutFuelTrims(processedMAF, processedVSS);
-        return mpg;
+
+        const mpgRecord: MpgRecord = {
+            maf: processedMAF,
+            vehicleSpeed: processedVSS,
+            mpg: mpg,
+
+            stft: null,
+            ltft: null,
+
+            mpgQueryStartTime: null
+        }
+
+        return mpgRecord;
     }
 
 }
