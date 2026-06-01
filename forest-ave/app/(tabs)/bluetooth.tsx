@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Text, View, StyleSheet, FlatList, Pressable, TextInput} from 'react-native';
 import RNBluetoothClassic, { BluetoothDevice } from 'react-native-bluetooth-classic';
 import { useBluetooth } from '../contexts/bluetoothContexts';
-import { delimiter } from 'path';
-import { AT_CMDS, ELM327_RESPONSES } from '@/app/utils/obdiiCommands';
-import { readWithTimeout } from '../utils/readWithTimeout';
+import { vehicleService } from '../services/vehicleService';
+import Toast from "react-native-toast-message";
+import { assertIsError } from '../utils/errors';
 
 interface BlueToothDeviceCardProps {
     btd: BluetoothDevice //bluetooth device
@@ -15,13 +15,13 @@ export default function BluetoothConnScreen() {
     // we want to have a list of bonded bluetooth devices
     // user selects the device they are currently connected to 
     // make sure bluetooth is even turned on
-    const {connectedDevice, setConnectedDevice, btdReceivedData} = useBluetooth();
+    // const {connectedDevice, setConnectedDevice, btdReceivedData} = useBluetooth();
 
     const [isBluetoothEnabled, setBluetoothEnabled] = useState(false);
     const [getBondedDevices, setBondedDevices]  = useState<BluetoothDevice[]>([]);
     const [getConnectedDeviceName, setConnectedDeviceName] = useState('no attempted connection');
     // const [getBtd, setBtd] = useState<BluetoothDevice | null>(bluetoothDeviceContext.connectedDevice);
-
+    const [getReceivedData, setReceivedData] = useState('no data received');
     const [getBtTextbox, setBtTextbox] = useState('placeholder');
 
     // this use effect is for getting the list of bonded devices which can change
@@ -46,68 +46,46 @@ export default function BluetoothConnScreen() {
     }, []);
 
     const handleBtdConnect = async(btd: BluetoothDevice) => {
-        let connection = await btd.isConnected();
-        if(!connection) {
-            connection = await btd.connect({delimiter: '>'});
-        }
-
-        if(connection) {
-            console.log(`connected to ${btd.name} successfully`);
+        try{
+            await vehicleService.connect(btd);
             setConnectedDeviceName(btd.name);
-            
-            console.log('INITIALIZING OBD2 SETTINGS...');
-
-            console.log('running ATE0 to turn off echo');
-            const echo_off_cmd = AT_CMDS.ECHO_OFF;
-            const isWriteSuccessful = await btd.write(`${echo_off_cmd}\r`);
-            if(!isWriteSuccessful) {
-                throw new Error('failed to send ATE0 instruction');
-            }
-
-            let res: string = await readWithTimeout(btd, 5000, 100);
-            console.log(`ELM327 message: ${res}`);
-            res = res.trim();
-            console.log(`processed res: ${res}`);
-            if(res === ELM327_RESPONSES.UNKNOWN_CMD) {
-                throw new Error(`ELM327 received ${echo_off_cmd} but could not recognize command`);
-            } else if (res !== ELM327_RESPONSES.AT_CMD_SUCCESS) {
-                throw new Error(`ELM327 unknown error when running ${echo_off_cmd}`);
-            }
-
-            const bufClearSuccess = await btd.clear();
-            if(!bufClearSuccess) {
-                throw new Error(`Failed to clear device buffer`);
-            }
-
-            console.log('OBD2 SETUP COMPLETE');
-            setConnectedDevice(btd);
+        } catch(error) {
+            assertIsError(error);
+            console.error(error);
+            Toast.show({type: 'error', text1: error.message});
         }
-        else {
-            console.log(`failed to connect to any device`);
-            setConnectedDeviceName('not connected to any device');
+    };
+
+    const onTextSubmit = async() => {
+        if(!vehicleService.obd2Client) {
+            Toast.show({type: 'error', text1: 'connection to obd2client not detected'});
+            return;
         }
+
+        const res = await vehicleService.obd2Client.queryOBD2(getBtTextbox);
+        setReceivedData(res);
     }
 
 
-    const handleSendingBtdMsg = async(btd: BluetoothDevice | null, msg: string) => {
-        if(btd === null) { 
-            console.error(`bluetooth device is null`);
-            return;
-        }
-        const isDeviceConnected = await btd.isConnected();
-        if(!isDeviceConnected) {
-            console.error(`Attempted to send bluetooth message but no device connected`);
-            return;
-        }
+    // const handleSendingBtdMsg = async(btd: BluetoothDevice | null, msg: string) => {
+    //     if(btd === null) { 
+    //         console.error(`bluetooth device is null`);
+    //         return;
+    //     }
+    //     const isDeviceConnected = await btd.isConnected();
+    //     if(!isDeviceConnected) {
+    //         console.error(`Attempted to send bluetooth message but no device connected`);
+    //         return;
+    //     }
 
-        const isWriteSuccessful = await btd.write(msg);
-        if(!isWriteSuccessful) {
-            console.error(`Attempted to send bluetooth message but failed to write`);
-            return;
-        }
+    //     const isWriteSuccessful = await btd.write(msg);
+    //     if(!isWriteSuccessful) {
+    //         console.error(`Attempted to send bluetooth message but failed to write`);
+    //         return;
+    //     }
 
-        console.log(`message ${msg} successfully written to ${btd.name}`);
-    }
+    //     console.log(`message ${msg} successfully written to ${btd.name}`);
+    // }
 
     return (
         <View>
@@ -129,7 +107,7 @@ export default function BluetoothConnScreen() {
                 <TextInput 
                     onChangeText={setBtTextbox} 
                     value={getBtTextbox}
-                    onSubmitEditing={async ()=> {handleSendingBtdMsg(connectedDevice, getBtTextbox)}}
+                    onSubmitEditing={onTextSubmit}
 
                 />
             </View>
@@ -144,10 +122,9 @@ export default function BluetoothConnScreen() {
                     Live Data:
                 </Text>
                 <Text style={styles.textRegularStyle}>
-                    {btdReceivedData}
+                    {getReceivedData}
                 </Text>
             </View>
-
         </View>
 
     )

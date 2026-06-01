@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import Toast from "react-native-toast-message";
 
 export default function Index() {
   return (
@@ -10,6 +11,12 @@ export default function Index() {
       }}
     >
       <Text>Forest Avenue</Text>
+
+      <Toast 
+        position='bottom'
+        bottomOffset={20} 
+      />
+
     </View>
   );
 }
