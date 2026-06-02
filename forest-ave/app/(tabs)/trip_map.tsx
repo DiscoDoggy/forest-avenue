@@ -3,11 +3,14 @@ import { Text, View, StyleSheet, Pressable } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Mapbox, { MapView } from "@rnmapbox/maps";
 import TripMap from '../components/tripMap';
+import { useMpgDataStore } from '../services/mpgStateStore';
+import { vehicleService } from '../services/vehicleService';
 
 Mapbox.setAccessToken("pk.eyJ1IjoidGhlZmxpZ2h0bGVzc2JpcmQiLCJhIjoiY21tazN3MTQzMWdybzJ3b2M4dHF0Y3JrZSJ9.vwuF1cIXhLfvYU-p1PL7Hw");
 Mapbox.setTelemetryEnabled(false);
 
 export default function TripScreen() {
+    const mpg = useMpgDataStore((state) => state.mpg);
     const [isTripStarted, setTripStarted] = useState(false);
     const [isTripPaused, setTripPaused] = useState(false);
     const [isTripStopped, setTripStopped] = useState(false);
@@ -30,6 +33,7 @@ export default function TripScreen() {
                                 onPress={() => {
                                     setTripStarted(true);
                                     // want to start recording GPS and OBD2 stats after pressing of start trip
+                                    vehicleService.mpgPollingService?.startMPGPolling();
                                 }}
                             >
                                 <Text>Start Trip</Text>
@@ -41,6 +45,11 @@ export default function TripScreen() {
                                 <Pressable
                                     onPress={() => {
                                         setTripPaused(!isTripPaused);
+                                        if(isTripPaused) {
+                                            vehicleService.mpgPollingService?.startMPGPolling();
+                                        } else {
+                                            vehicleService.mpgPollingService?.stopMPGPolling();
+                                        }
                                     }}
                                 >
                                     <Ionicons name={!isTripPaused ? 'pause' : 'play'} size={96} />
@@ -51,6 +60,7 @@ export default function TripScreen() {
                                 <Pressable
                                     onPress={() => {
                                         setTripStopped(true);
+                                        vehicleService.mpgPollingService?.stopMPGPolling();
                                     }}
                                 >
                                     <Ionicons name={'stop'} size={64} />
