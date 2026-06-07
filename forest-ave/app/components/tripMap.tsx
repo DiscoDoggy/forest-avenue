@@ -21,7 +21,7 @@ export default function TripMap({ isTripStarted, isTripPaused, isTripStopped }: 
     const camera = useRef<Camera>(null);
     const [getTripCoords, setTripCoords] = useState<number[][]>([]);
 
-    const mpg = useMpgDataStore((state) => state.mpg);
+    // const mpg = useMpgDataStore((state) => state.mpg);
 
     const [getGeoTripData, setGeoTripData] = useState<FeatureCollection<Geometry>>({ 
         type: 'FeatureCollection',
@@ -81,14 +81,14 @@ export default function TripMap({ isTripStarted, isTripPaused, isTripStopped }: 
 
                 const subscription = await Location.watchPositionAsync({
                     accuracy: Location.Accuracy.High,
-                    timeInterval: 500 
+                    timeInterval: 3000 
                 }, async (location) => {
                     setLocation(location)
                     camera.current?.setCamera({
                         centerCoordinate: [location.coords.longitude, location.coords.latitude]
                     });
-
-                    let tempMpg;
+                    const mpg = useMpgDataStore.getState().mpg;
+                    let tempMpg; 
                     if(mpg === null) {
                         tempMpg = 0;
                     } else {
@@ -110,7 +110,7 @@ export default function TripMap({ isTripStarted, isTripPaused, isTripStopped }: 
             }
         };
 
-    }, [isTripStarted, isTripPaused, isTripStopped, updateGeoTripData, mpg])
+    }, [isTripStarted, isTripPaused, isTripStopped, updateGeoTripData])
 
     return (
         <View style={styles.map}>

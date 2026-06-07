@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type State = {
+type MpgState = {
     maf: number | null
     vehicleSpeed: number | null
 
@@ -12,20 +12,20 @@ type State = {
     mpgQueryStartTime: number | null
 }
 
-type Action = {
-    updateMaf: (maf: State['maf']) => void
+type MpgAction = {
+    updateMaf: (maf: MpgState['maf']) => void
 
-    updateVehicleSpeed: (vehicleSpeed: State['vehicleSpeed']) => void
+    updateVehicleSpeed: (vehicleSpeed: MpgState['vehicleSpeed']) => void
 
-    updateStft: (stft: State['stft']) => void
-    updateLtft: (ltft: State['ltft']) => void
+    updateStft: (stft: MpgState['stft']) => void
+    updateLtft: (ltft: MpgState['ltft']) => void
 
-    updateMpg:  (mpg: State['mpg']) => void
+    updateMpg:  (mpg: MpgState['mpg']) => void
 
-    updateMpgQueryStartTime: (mpgQueryStartTime: State['mpgQueryStartTime']) => void
+    updateMpgQueryStartTime: (mpgQueryStartTime: MpgState['mpgQueryStartTime']) => void
 }
 
-export const useMpgDataStore = create<State & Action>((set) => ({
+export const useMpgDataStore = create<MpgState & MpgAction>((set) => ({
     maf: null,
     vehicleSpeed: null,
 

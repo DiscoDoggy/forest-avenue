@@ -2,8 +2,9 @@ import { calculateInstMPGWithoutFuelTrims } from "../utils/mpg";
 import { OBDPIDS } from "../utils/obdiiCommands";
 import { setWholeState } from "./mpgStateStore";
 import { OBD2Client } from "./obd2Client";
+import { mpgGpsAggregator } from "./serviceContainer";
 
-type MpgRecord = {
+export type MpgRecord = {
     maf: number | null
     vehicleSpeed: number | null
 
@@ -52,14 +53,16 @@ export class MpgPollingService {
         // to members of these fields 
         // our syncronoization strategy makes a makes a big assumption:
             // that the mpg is changed in the state after all other components 
-        setWholeState(
-            mpgRecord.maf,
-            mpgRecord.vehicleSpeed,
-            mpgRecord.stft,
-            mpgRecord.ltft,
-            mpgRecord.mpg,
-            mpgRecord.mpgQueryStartTime
-        );
+        // setWholeState(
+        //     mpgRecord.maf,
+        //     mpgRecord.vehicleSpeed,
+        //     mpgRecord.stft,
+        //     mpgRecord.ltft,
+        //     mpgRecord.mpg,
+        //     mpgRecord.mpgQueryStartTime
+        // );
+
+        mpgGpsAggregator.addMpgData(mpgRecord);
 
         this.scheduleNextJob(jobTimeElapsed, 500);
     }

@@ -10,7 +10,7 @@ Mapbox.setAccessToken("pk.eyJ1IjoidGhlZmxpZ2h0bGVzc2JpcmQiLCJhIjoiY21tazN3MTQzMW
 Mapbox.setTelemetryEnabled(false);
 
 export default function TripScreen() {
-    const mpg = useMpgDataStore((state) => state.mpg);
+    // const mpg = useMpgDataStore((state) => state.mpg);
     const [isTripStarted, setTripStarted] = useState(false);
     const [isTripPaused, setTripPaused] = useState(false);
     const [isTripStopped, setTripStopped] = useState(false);
