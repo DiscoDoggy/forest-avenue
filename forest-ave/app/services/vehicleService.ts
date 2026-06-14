@@ -1,14 +1,17 @@
 import { BluetoothDevice } from "react-native-bluetooth-classic";
 import { MpgPollingService } from "./mpgPollingService";
 import { OBD2Client } from "./obd2Client";
+import { MpgGpsAggregator } from "./mpgGpsAggregator";
 
 export class VehicleService {
     obd2Client: OBD2Client | null;
     mpgPollingService: MpgPollingService | null;
+    mpgGpsAggregator: MpgGpsAggregator;
 
-    constructor() {
+    constructor(mpgGpsAggregator: MpgGpsAggregator) {
         this.obd2Client = null;
         this.mpgPollingService = null;
+        this.mpgGpsAggregator = mpgGpsAggregator 
     }
 
     async connect(btd: BluetoothDevice) {
@@ -26,7 +29,7 @@ export class VehicleService {
 
      
         this.obd2Client = new OBD2Client(btd);
-        this.mpgPollingService = new MpgPollingService(this.obd2Client);
+        this.mpgPollingService = new MpgPollingService(this.obd2Client, this.mpgGpsAggregator);
     }
 
     async disconnect() {
@@ -39,4 +42,4 @@ export class VehicleService {
 
 }
 
-export const vehicleService = new VehicleService();
+// export const vehicleService = new VehicleService();

@@ -20,7 +20,9 @@ export function HaversineDistance(source: LocationObject, destination: LocationO
         Math.cos(destLatRad) * Math.sin(deltaLong / 2)**2);
 
     const distBetweenCoords = 2 * EARTH_RADIUS * Math.asin(root);
-    return distBetweenCoords;
+
+    //conv to meters
+    return distBetweenCoords * 1609;
 
 }
 

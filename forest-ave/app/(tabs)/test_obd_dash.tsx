@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button, Text, View } from "react-native";
 import { useMpgDataStore } from "../services/mpgStateStore";
-import { vehicleService } from "../services/vehicleService";
+import { vehicleService } from "../services/serviceContainer";
 
 export default function BtdTestScreen() {
     const [isRecordingMpg, setIsRecordingMpg] = useState(false);

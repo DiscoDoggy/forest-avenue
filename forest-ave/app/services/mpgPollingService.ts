@@ -1,8 +1,7 @@
 import { calculateInstMPGWithoutFuelTrims } from "../utils/mpg";
 import { OBDPIDS } from "../utils/obdiiCommands";
-import { setWholeState } from "./mpgStateStore";
+import { MpgGpsAggregator } from "./mpgGpsAggregator";
 import { OBD2Client } from "./obd2Client";
-import { mpgGpsAggregator } from "./serviceContainer";
 
 export type MpgRecord = {
     maf: number | null
@@ -19,9 +18,11 @@ export type MpgRecord = {
 export class MpgPollingService {
     obdClient!: OBD2Client;
     isPollingEnabled: boolean;
+    mpgGpsAggregator: MpgGpsAggregator;
 
-    constructor(obdClient: OBD2Client) {
+    constructor(obdClient: OBD2Client, mpgGpsAggregator: MpgGpsAggregator) {
         this.obdClient = obdClient;
+        this.mpgGpsAggregator = mpgGpsAggregator;
         this.isPollingEnabled = false;
     }
 
@@ -62,7 +63,7 @@ export class MpgPollingService {
         //     mpgRecord.mpgQueryStartTime
         // );
 
-        mpgGpsAggregator.addMpgData(mpgRecord);
+        this.mpgGpsAggregator.addMpgData(mpgRecord);
 
         this.scheduleNextJob(jobTimeElapsed, 500);
     }

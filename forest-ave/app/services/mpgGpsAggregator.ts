@@ -2,6 +2,7 @@ import { LocationObject } from "expo-location";
 import { MpgRecord } from "./mpgPollingService";
 import { HaversineDistance } from "../utils/distanceFormulas";
 import { Feature, Geometry } from "geojson";
+import { setLocationHistory } from "./gpsStore";
 
 // type Coordinates = {
 //     longitude: number
@@ -68,13 +69,15 @@ export class MpgGpsAggregator {
     }
 
     addGpsData(location: LocationObject) {
+        console.log('entering add gps data');
+        console.log(`CUMULATIVE DISTANCE: ${this.cumulativeDist}`)
         if(this.gpsData.length > 0 ) {
             this.cumulativeDist += HaversineDistance(this.gpsData[this.gpsData.length - 1], location);
         }
 
         this.gpsData.push(location);
 
-        if(this.cumulativeDist >= 30) { // 30 meters
+        if(this.cumulativeDist >= 2) { // 30 meters
             this.aggregate();
             this.flushToSubs();
         }
@@ -104,13 +107,13 @@ export class MpgGpsAggregator {
         //create geojson
         let positions = [];
         for(const position of coordSegment.longLatPoints) {
-            positions.push([position.coords.latitude, position.coords.longitude]);
+            positions.push([position.coords.longitude, position.coords.latitude,]);
         }
 
         let lineColor = ''
         if(smoothedMpg <= 20) {
             lineColor = '#DB4437';
-        } else if(smoothedMpg > 20 && smoothedMpg <= 25) {
+        } else if(smoothedMpg > 20 && smoothedMpg <= 27) {
             lineColor = '#F4B400';
         }  else {
             lineColor = '#0F9D58';
@@ -134,12 +137,14 @@ export class MpgGpsAggregator {
         this.longBuffer.smoothedLinkedMpgGpsSegments.push(segmentMpg);
 
         //clear raw data thats been aggregated already
-        this.gpsData = [];
+        this.gpsData = [this.gpsData[this.gpsData.length - 1]];
+        this.cumulativeDist = 0;
         this.mpgData = [];
     }
 
     flushToSubs() {
-        return;
+        console.log('FLUSHING LOCATIONS TO FRONTEND')
+        setLocationHistory(this.segmentGeoJson);
     }
 
     flushToPermStorage() {
