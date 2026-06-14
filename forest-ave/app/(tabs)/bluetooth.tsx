@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Text, View, StyleSheet, FlatList, Pressable, TextInput} from 'react-native';
 import RNBluetoothClassic, { BluetoothDevice } from 'react-native-bluetooth-classic';
 import { useBluetooth } from '../contexts/bluetoothContexts';
-import { vehicleService } from '../services/vehicleService';
 import Toast from "react-native-toast-message";
 import { assertIsError } from '../utils/errors';
+import { vehicleService } from '../services/serviceContainer';
 
 interface BlueToothDeviceCardProps {
     btd: BluetoothDevice //bluetooth device

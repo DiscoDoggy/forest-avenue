@@ -113,22 +113,6 @@ export class OBD2Client {
         
         currReqCopy.resolve(currData.trim());
 
-        // const isMsgComplete = data.includes('>');
-        // if(isMsgComplete) {
-        //     //remove the > character
-        //     const processedData = data.replace('>', '');
-        //     const currData = this.readBuffer + processedData;
-
-        //     //clean up
-        //     this.readBuffer = '';
-        //     const currReqCopy = this.currWriteQueryReq;
-        //     this.currWriteQueryReq= null;
-            
-        //     currReqCopy.resolve(currData);
-        // } else {
-        //     this.readBuffer += data;
-        // }
-
         clearTimeout(timeoutId);
     }
 }

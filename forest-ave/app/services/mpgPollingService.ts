@@ -1,9 +1,9 @@
 import { calculateInstMPGWithoutFuelTrims } from "../utils/mpg";
 import { OBDPIDS } from "../utils/obdiiCommands";
-import { setWholeState } from "./mpgStateStore";
+import { MpgGpsAggregator } from "./mpgGpsAggregator";
 import { OBD2Client } from "./obd2Client";
 
-type MpgRecord = {
+export type MpgRecord = {
     maf: number | null
     vehicleSpeed: number | null
 
@@ -18,9 +18,11 @@ type MpgRecord = {
 export class MpgPollingService {
     obdClient!: OBD2Client;
     isPollingEnabled: boolean;
+    mpgGpsAggregator: MpgGpsAggregator;
 
-    constructor(obdClient: OBD2Client) {
+    constructor(obdClient: OBD2Client, mpgGpsAggregator: MpgGpsAggregator) {
         this.obdClient = obdClient;
+        this.mpgGpsAggregator = mpgGpsAggregator;
         this.isPollingEnabled = false;
     }
 
@@ -52,14 +54,16 @@ export class MpgPollingService {
         // to members of these fields 
         // our syncronoization strategy makes a makes a big assumption:
             // that the mpg is changed in the state after all other components 
-        setWholeState(
-            mpgRecord.maf,
-            mpgRecord.vehicleSpeed,
-            mpgRecord.stft,
-            mpgRecord.ltft,
-            mpgRecord.mpg,
-            mpgRecord.mpgQueryStartTime
-        );
+        // setWholeState(
+        //     mpgRecord.maf,
+        //     mpgRecord.vehicleSpeed,
+        //     mpgRecord.stft,
+        //     mpgRecord.ltft,
+        //     mpgRecord.mpg,
+        //     mpgRecord.mpgQueryStartTime
+        // );
+
+        this.mpgGpsAggregator.addMpgData(mpgRecord);
 
         this.scheduleNextJob(jobTimeElapsed, 500);
     }
