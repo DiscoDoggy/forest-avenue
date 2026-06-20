@@ -50,19 +50,6 @@ export class MpgPollingService {
 
         const jobTimeElapsed = endTime - startTime;
         mpgRecord.mpgQueryStartTime = startTime;
-        // write to storage the mpg which should trigger the application state to change if things are subscribed 
-        // to members of these fields 
-        // our syncronoization strategy makes a makes a big assumption:
-            // that the mpg is changed in the state after all other components 
-        // setWholeState(
-        //     mpgRecord.maf,
-        //     mpgRecord.vehicleSpeed,
-        //     mpgRecord.stft,
-        //     mpgRecord.ltft,
-        //     mpgRecord.mpg,
-        //     mpgRecord.mpgQueryStartTime
-        // );
-
         this.mpgGpsAggregator.addMpgData(mpgRecord);
 
         this.scheduleNextJob(jobTimeElapsed, 500);
