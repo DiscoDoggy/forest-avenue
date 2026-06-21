@@ -3,7 +3,7 @@ import { Text, View, StyleSheet, Pressable } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Mapbox from "@rnmapbox/maps";
 import TripMap from '../components/tripMap';
-import { gpsService, vehicleService } from '../services/serviceContainer';
+import { tripRecorder } from '../services/serviceContainer';
 
 Mapbox.setAccessToken("pk.eyJ1IjoidGhlZmxpZ2h0bGVzc2JpcmQiLCJhIjoiY21tazN3MTQzMWdybzJ3b2M4dHF0Y3JrZSJ9.vwuF1cIXhLfvYU-p1PL7Hw");
 Mapbox.setTelemetryEnabled(false);
@@ -15,13 +15,11 @@ export default function TripScreen() {
     const [isTripStopped, setTripStopped] = useState(false);
 
     const startTrip = () => {
-        vehicleService.mpgPollingService?.startMPGPolling();
-        gpsService.connect();
+        tripRecorder.startTrip();        
     };
 
     const haltTrip = () => {
-        vehicleService.mpgPollingService?.stopMPGPolling();
-        gpsService.disconnect();
+        tripRecorder.endTrip();
     };
 
     return (

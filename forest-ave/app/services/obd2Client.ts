@@ -9,21 +9,41 @@ type PendingRequest = {
 };
 
 export class OBD2Client {
-    btd: BluetoothDevice;
+    btd?: BluetoothDevice;
     readSubscription: BluetoothEventSubscription | null=null;
     private readBuffer: string; 
     private currWriteQueryReq: PendingRequest | null=null;
 
-    constructor(btd: BluetoothDevice) {
-        this.btd = btd;
+    constructor() {
         this.readBuffer = '';
         this.currWriteQueryReq = null;
 
+    }
+
+    async connect(btd: BluetoothDevice) {
+        const isConnected = await btd.isConnected(); 
+        if(isConnected) { //device is already connected. Do we want to throw an error that gets handled at the app level? 
+            return;
+        } 
+
+        const connection = await btd.connect({delimiter: '>'});
+        if(!connection) { //ideally we retry
+            throw new Error(`attempted to connect to ${btd.name} but could not establish a connection`);
+        }
+
         this.initOBD2Client();
+    }
+
+    async disconnect() {
+        if(!this.btd || !this.btd.isConnected()) {
+            return;    
+        }
+
+        this.removeBtdConnection(); 
     }
     
     async queryOBD2(obdCmd: string): Promise<string> {
-        if(this.btd === null || !this.btd.isConnected()) {
+        if(!this.btd || !this.btd.isConnected()) {
             throw new Error(`attempted to query obd2 but no bluetooth device connected`);
         }
 
@@ -66,13 +86,21 @@ export class OBD2Client {
             this.readSubscription.remove();
         }
 
-        await this.btd.disconnect();
         this.readBuffer = '';
+
+        if(!this.btd) {
+            return;
+        }
+
+        await this.btd.disconnect();
     }
 
     // the error handling here suggests that we unsubscribe, disconnect so that 
     // a connection can be tried again and we wont have duplicate connections
     private async initOBD2Client() {
+        if(!this.btd) {
+            throw new Error('while initializing obd2Client, could not detect btd');
+        }
         this.readSubscription = this.btd.onDataReceived((event) => {
             this.handleBtdBufferData(event.data);
         });

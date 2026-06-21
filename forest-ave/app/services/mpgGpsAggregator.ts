@@ -2,7 +2,9 @@ import { LocationObject } from "expo-location";
 import { MpgRecord } from "./mpgPollingService";
 import { HaversineDistance } from "../utils/distanceFormulas";
 import { Feature, Geometry } from "geojson";
-import { setLocationHistory } from "./gpsStore";
+import { setLocationHistory, useGpsStore } from "./gpsStore";
+import { getDB } from "@/db/dbConnSingletonService";
+import { Trip, TripsDAO } from "@/db/trips";
 
 // type Coordinates = {
 //     longitude: number
@@ -30,6 +32,8 @@ type AggregatedRawMpgGpsData = {
 // to the Zustand state so that the consumers of the zustand state can update accordingly
 // we also want to keep enough data such that on occasion we can write to permanent storage throughout the routes progress
 export class MpgGpsAggregator {
+    tripId?: string;
+    tripName?: string;
 
     gpsData: LocationObject[];
     mpgData: MpgRecord[];
@@ -40,7 +44,10 @@ export class MpgGpsAggregator {
     segmentGeoJson: Feature<Geometry>;
 
     cumulativeDist: number;
+    cumulativeMpgResetable: number;
     cumulativeMpg: number;
+    numMpgCalculations: number;
+    totalDistance: number;
 
     constructor() {
         this.gpsData = [];
@@ -52,6 +59,7 @@ export class MpgGpsAggregator {
             rawMpgData: [],
             rawGpsData: [],
             smoothedLinkedMpgGpsSegments: []
+
         };
 
         this.segmentGeoJson = {
@@ -64,15 +72,19 @@ export class MpgGpsAggregator {
         };
 
         this.cumulativeDist = 0;
+        this.cumulativeMpgResetable = 0;
         this.cumulativeMpg = 0;
-        
+        this.totalDistance = 0;
+        this.numMpgCalculations = 0;
     }
 
     addGpsData(location: LocationObject) {
         console.log('entering add gps data');
         console.log(`CUMULATIVE DISTANCE: ${this.cumulativeDist}`)
         if(this.gpsData.length > 0 ) {
-            this.cumulativeDist += HaversineDistance(this.gpsData[this.gpsData.length - 1], location);
+            const p2pDist = HaversineDistance(this.gpsData[this.gpsData.length - 1], location)
+            this.cumulativeDist += p2pDist
+            this.totalDistance +=  p2pDist;
         }
 
         this.gpsData.push(location);
@@ -81,10 +93,13 @@ export class MpgGpsAggregator {
             this.aggregate();
             this.flushToSubs();
         }
+
+        this.numMpgCalculations += 1;
     }
 
     addMpgData(mpgData: MpgRecord) {
         this.mpgData.push(mpgData);
+        this.cumulativeMpgResetable += mpgData.mpg;
         this.cumulativeMpg += mpgData.mpg;
     }
 
@@ -97,7 +112,7 @@ export class MpgGpsAggregator {
             longLatPoints: this.gpsData
         };
 
-        const smoothedMpg = this.cumulativeMpg / this.mpgData.length;
+        const smoothedMpg = this.cumulativeMpgResetable / this.mpgData.length;
 
         const segmentMpg: MpgAlongCoordsSegment = {
             segment: coordSegment,
@@ -139,6 +154,7 @@ export class MpgGpsAggregator {
         //clear raw data thats been aggregated already
         this.gpsData = [this.gpsData[this.gpsData.length - 1]];
         this.cumulativeDist = 0;
+        this.cumulativeMpgResetable = 0;
         this.mpgData = [];
     }
 
@@ -147,7 +163,50 @@ export class MpgGpsAggregator {
         setLocationHistory(this.segmentGeoJson);
     }
 
-    flushToPermStorage() {
-        return;
+    async flushToPermStorage() {
+        this.tripId = crypto.randomUUID();
+        const geoJsonStr = JSON.stringify(useGpsStore.getState().locationHistory);
+        const newTrip: Trip = {
+            id: this.tripId,
+            vehicleId: 'TEST CAR 123',
+            startTime: 1782008331,
+            endTime: 1782011931,
+            tripAggResults: {
+                geoJson: geoJsonStr,
+                distanceTraveled: this.cumulativeDist,
+                avgMpg: this.cumulativeMpg / this.numMpgCalculations,
+                avgSpeed: 35
+            }
+        }
+
+        const db = await getDB();
+        const tripDao = new TripsDAO(db)
+        
+        tripDao.createTrip(newTrip)
+    }
+
+    clearData() {
+        this.tripId = '';
+        this.tripName = '';
+        this.gpsData = [];
+        this.mpgData = [];
+        this.shortBuffer = [];
+        this.longBuffer = {
+            rawMpgData: [],
+            rawGpsData: [],
+            smoothedLinkedMpgGpsSegments: []
+        };
+
+        this.segmentGeoJson = {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'LineString',
+                coordinates:[]
+            }
+        };
+
+        this.cumulativeDist = 0;
+        this.cumulativeMpgResetable = 0;
     }
 }

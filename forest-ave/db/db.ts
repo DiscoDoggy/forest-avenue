@@ -2,7 +2,8 @@ import * as SQLite from 'expo-sqlite'
 
 export async function createDBConnection() {
     try {
-        const db = SQLite.openDatabaseAsync('forestAve.db')
+        const db = SQLite.openDatabaseAsync('forestAve.db');
+        return db;
     } catch (e) {
         throw Error(`could not establish connection to local database: ${e}`);
     }

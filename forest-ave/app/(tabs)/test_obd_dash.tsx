@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button, Text, View } from "react-native";
 import { useMpgDataStore } from "../services/mpgStateStore";
-import { vehicleService } from "../services/serviceContainer";
+import { tripRecorder} from "../services/serviceContainer";
 
 export default function BtdTestScreen() {
     const [isRecordingMpg, setIsRecordingMpg] = useState(false);
@@ -9,12 +9,12 @@ export default function BtdTestScreen() {
     const mpg = useMpgDataStore((state) => state.mpg);
 
     const startMpgPolling = () => {
-        vehicleService.mpgPollingService?.startMPGPolling();
+        tripRecorder.mpgRecorder.startMPGPolling();
         setIsRecordingMpg(true);
     };
 
     const stopMpgPolling= () => {
-        vehicleService.mpgPollingService?.stopMPGPolling();
+        tripRecorder.mpgRecorder.stopMPGPolling();
         setIsRecordingMpg(false);
     };
 

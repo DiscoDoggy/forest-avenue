@@ -22,8 +22,8 @@ export class MpgPollingService {
 
     constructor(obdClient: OBD2Client, mpgGpsAggregator: MpgGpsAggregator) {
         this.obdClient = obdClient;
-        this.mpgGpsAggregator = mpgGpsAggregator;
         this.isPollingEnabled = false;
+        this.mpgGpsAggregator = mpgGpsAggregator;
     }
 
     startMPGPolling() {
@@ -50,6 +50,9 @@ export class MpgPollingService {
 
         const jobTimeElapsed = endTime - startTime;
         mpgRecord.mpgQueryStartTime = startTime;
+        if(!this.mpgGpsAggregator) {
+            throw new Error(`mpgGpsAggregator is likely undefined`);
+        }
         this.mpgGpsAggregator.addMpgData(mpgRecord);
 
         this.scheduleNextJob(jobTimeElapsed, 500);
