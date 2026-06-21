@@ -18,7 +18,11 @@ export default function TripScreen() {
         tripRecorder.startTrip();        
     };
 
-    const haltTrip = () => {
+    const pauseTrip = () => {
+        tripRecorder.pauseTrip();
+    };
+
+    const stopTrip = () => {
         tripRecorder.endTrip();
     };
 
@@ -55,7 +59,7 @@ export default function TripScreen() {
                                         if(isTripPaused) {
                                             startTrip()
                                         } else {
-                                            haltTrip();
+                                            pauseTrip();
                                         }
                                     }}
                                 >
@@ -67,7 +71,7 @@ export default function TripScreen() {
                                 <Pressable
                                     onPress={() => {
                                         setTripStopped(true);
-                                        haltTrip();
+                                        stopTrip();
                                     }}
                                 >
                                     <Ionicons name={'stop'} size={64} />
