@@ -5,6 +5,7 @@ import { Feature, Geometry } from "geojson";
 import { setLocationHistory, useGpsStore } from "./gpsStore";
 import { getDB } from "@/db/dbConnSingletonService";
 import { Trip, TripsDAO } from "@/db/trips";
+import { setMpg } from "./mpgStateStore";
 
 // type Coordinates = {
 //     longitude: number
@@ -27,13 +28,19 @@ type AggregatedRawMpgGpsData = {
     smoothedLinkedMpgGpsSegments: MpgAlongCoordsSegment[]
 }
 
+export type PreliminaryTripInfo = {
+    tripId: string,
+    tripName?: string,
+    tripStartTime?: number,
+    tripEndTime?: number
+};
+
 //so the goal of this is to pair the incoming mpg data with the incoming gps data
 //once enough data is obtained, or a sufficient amount of time has passed, we want to flush buffer
 // to the Zustand state so that the consumers of the zustand state can update accordingly
 // we also want to keep enough data such that on occasion we can write to permanent storage throughout the routes progress
 export class MpgGpsAggregator {
-    tripId?: string;
-    tripName?: string;
+    tripInfo?: PreliminaryTripInfo;
 
     gpsData: LocationObject[];
     mpgData: MpgRecord[];
@@ -99,6 +106,7 @@ export class MpgGpsAggregator {
 
     addMpgData(mpgData: MpgRecord) {
         this.mpgData.push(mpgData);
+        setMpg(mpgData.mpg);
         this.cumulativeMpgResetable += mpgData.mpg;
         this.cumulativeMpg += mpgData.mpg;
     }
@@ -164,13 +172,15 @@ export class MpgGpsAggregator {
     }
 
     async flushToPermStorage() {
-        this.tripId = crypto.randomUUID();
         const geoJsonStr = JSON.stringify(useGpsStore.getState().locationHistory);
+        if(!this.tripInfo) {
+            throw new Error('attempted to store trip but no trip information could be found');
+        }
         const newTrip: Trip = {
-            id: this.tripId,
+            id: this.tripInfo.tripId,
             vehicleId: 'TEST CAR 123',
-            startTime: 1782008331,
-            endTime: 1782011931,
+            ...(this.tripInfo.tripStartTime ?  {startTime: this.tripInfo.tripStartTime} : {startTime: Date.now() - 3600}),
+            ...(this.tripInfo.tripEndTime ? {endTime: this.tripInfo.tripEndTime} : {endTime: Date.now()}), 
             tripAggResults: {
                 geoJson: geoJsonStr,
                 distanceTraveled: this.cumulativeDist,
@@ -186,8 +196,7 @@ export class MpgGpsAggregator {
     }
 
     clearData() {
-        this.tripId = '';
-        this.tripName = '';
+        this.tripInfo = undefined;
         this.gpsData = [];
         this.mpgData = [];
         this.shortBuffer = [];

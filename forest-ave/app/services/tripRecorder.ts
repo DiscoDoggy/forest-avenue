@@ -3,14 +3,7 @@ import { MpgGpsAggregator } from "./mpgGpsAggregator";
 import { MpgPollingService } from "./mpgPollingService";
 import { VehicleService } from "./vehicleService";
 
-type preliminaryTripInfo = {
-    tripId: string,
-    tripName?: string
-};
-
 export class TripRecorder {
-    basicTripInfo?: preliminaryTripInfo;
-
     mpgRecorder: MpgPollingService;
     gpsRecorder: GpsService;
     tripVehicleService: VehicleService;
@@ -27,12 +20,10 @@ export class TripRecorder {
         this.mpgRecorder.startMPGPolling();
         this.gpsRecorder.connect();
 
-        if(!this.basicTripInfo) {
-            this.basicTripInfo = {
-                tripId: crypto.randomUUID()
-            }
-            if(!this.tripStatsAggregator.tripId){
-                this.tripStatsAggregator.tripId = this.basicTripInfo.tripId;
+        if(!this.tripStatsAggregator.tripInfo) {
+            this.tripStatsAggregator.tripInfo = {
+                tripId: crypto.randomUUID(),
+                tripStartTime: Date.now()
             }
         }
     }
@@ -44,12 +35,20 @@ export class TripRecorder {
 
     async endTrip() {
         this.pauseTrip();
-        //then flush rest of stuff
+        if(!this.tripStatsAggregator.tripInfo) {
+            throw new Error('Tried to end trip but no active trip information found');
+        }
+
+        this.tripStatsAggregator.tripInfo.tripEndTime = Date.now();
         await this.tripStatsAggregator.flushToPermStorage();
         this.tripStatsAggregator.clearData();
     }
 
-    setTripName() {
-        return;
+    setTripName(tripName: string) {
+        if(!this.tripStatsAggregator.tripInfo) {
+            throw new Error('Tried to set trip name but no active trip exists');
+        }
+
+        this.tripStatsAggregator.tripInfo.tripName = tripName;
     }
 }

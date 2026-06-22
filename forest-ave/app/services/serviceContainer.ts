@@ -6,7 +6,7 @@ import { TripRecorder } from "./tripRecorder";
 import { VehicleService } from "./vehicleService";
 
 // initialize all services
-const obd2Client = new OBD2Client();
+export const obd2Client = new OBD2Client();
 const vehicleService = new VehicleService(obd2Client);
 
 const mpgGpsStatsAggregator = new MpgGpsAggregator(); 
