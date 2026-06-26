@@ -22,7 +22,7 @@ export class OBD2Client {
 
     async connect(btd: BluetoothDevice) {
         console.log('enter obd2client connect function');
-        if(this.btd) {
+        if(this.btd && (await this.btd.isConnected())) {
             await this.btd.disconnect();
         }
         if(this.readSubscription) {

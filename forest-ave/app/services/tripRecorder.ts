@@ -2,6 +2,7 @@ import { GpsService } from "./gpsService";
 import { MpgGpsAggregator } from "./mpgGpsAggregator";
 import { MpgPollingService } from "./mpgPollingService";
 import { VehicleService } from "./vehicleService";
+import uuid from 'react-native-uuid';
 
 export class TripRecorder {
     mpgRecorder: MpgPollingService;
@@ -22,7 +23,7 @@ export class TripRecorder {
 
         if(!this.tripStatsAggregator.tripInfo) {
             this.tripStatsAggregator.tripInfo = {
-                tripId: crypto.randomUUID(),
+                tripId: uuid.v4(), 
                 tripStartTime: Date.now()
             }
         }

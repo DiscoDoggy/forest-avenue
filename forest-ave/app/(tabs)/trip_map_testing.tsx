@@ -1,9 +1,11 @@
 import Mapbox, { MapView, LocationPuck, Camera, ShapeSource, LineLayer, LineLayerStyle, CircleLayer, CircleLayerStyle, SymbolLayer, SymbolLayerStyle } from "@rnmapbox/maps";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { View, StyleSheet, Pressable, Text } from "react-native";
 import MapStatWidget from "../components/stat_widget";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import MapControlButton from "../components/mapControlButton";
+import { tripRecorder } from "../services/serviceContainer";
+import { useGpsStore } from "../services/gpsStore";
+import { useMpgDataStore } from "../services/mpgStateStore";
 
 Mapbox.setAccessToken("pk.eyJ1IjoidGhlZmxpZ2h0bGVzc2JpcmQiLCJhIjoiY21tazN3MTQzMWdybzJ3b2M4dHF0Y3JrZSJ9.vwuF1cIXhLfvYU-p1PL7Hw");
 Mapbox.setTelemetryEnabled(false);
@@ -11,9 +13,29 @@ Mapbox.setTelemetryEnabled(false);
 export default function TripMapExperiment() {
     const camera = useRef<Camera>(null);
 
+    const gpsMpgColoredLineSegments = useGpsStore((state) => state.locationHistory);
+    const currGpsLocation = useGpsStore((state) => state.currLocation);
+    const mpg = useMpgDataStore((state) => state.mpg);
+
+    const [isTripStarted, setTripStarted] = useState(false);
+    const [isTripPaused, setTripPaused]  = useState(false) ;
+    const [isTripStopped, setTripStopped] = useState(false);
+
+    const startTrip = () => {
+        tripRecorder.startTrip();        
+    };
+
+    const pauseTrip = () => {
+        tripRecorder.pauseTrip();
+    };
+
+    const stopTrip = () => {
+        tripRecorder.endTrip();
+    };
+
     return (
         <View style={styles.page}>
-            -- map container
+            {/* -- map container */}
                  <MapView
                     scaleBarEnabled={false}
                     style={styles.map}
@@ -27,19 +49,26 @@ export default function TripMapExperiment() {
                     <Camera
                         ref={camera}
                         zoomLevel={17.1}
-                        followUserLocation={true}
+                        centerCoordinate={[currGpsLocation?.coords.longitude!, currGpsLocation?.coords.latitude!]}
                         animationMode='moveTo'
                     />
+                    <ShapeSource id='feature-source' shape={gpsMpgColoredLineSegments}>
+
+                        <LineLayer id='line-layer' style={lineLayerStyle} slot='middle'></LineLayer>
+                        {/* <CircleLayer id='circle-layer' style={circleLayerStyle} slot='middle'></CircleLayer> */}
+                        <SymbolLayer id='symbol-layer' style={symbolLayerStyle} slot='middle'></SymbolLayer>
+
+                    </ShapeSource>
                 </MapView>
 
-                -- top stats
+                {/* -- top stats */}
                 <View style={styles.topBarStats}>
                     <MapStatWidget 
-                        value={28} 
+                        value={mpg ? Number(mpg.toFixed(2)) : -1} 
                         title="Avg MPG"
                     />
                     <MapStatWidget 
-                        value={24} 
+                        value={mpg ? Number(mpg.toFixed(2)) : -1} 
                         title="Curr MPG"
                     />
                     <MapStatWidget 
@@ -52,12 +81,12 @@ export default function TripMapExperiment() {
                     />
                 </View>
 
-                -- obd2 connection status
+                {/* -- obd2 connection status */}
                 <View>
 
                 </View>
 
-                -- bottom controls
+                 {/* bottom controls */}
                 <View style={styles.tripControls}>
                     <View style={styles.tripRecenter}>
                         <Pressable>
@@ -73,9 +102,19 @@ export default function TripMapExperiment() {
                     </View>
 
                     <View style={styles.tripStartStop}>
-                        <Pressable>
+                        <Pressable 
+                            onPress={() => {
+                                setTripPaused(!isTripPaused);
+                                setTripStarted(true);
+                                if(isTripPaused) {
+                                    startTrip()
+                                } else {
+                                    pauseTrip();
+                                }
+                            }}
+                        >
                             <MapControlButton 
-                                name="Start trip "
+                                name= {!isTripStarted || isTripPaused ? 'Start trip' : 'Pause trip'}
                                 iconName="paper-plane-sharp"
                                 iconColor="#16a2ff"
                                 horizPadding={32}
@@ -84,7 +123,15 @@ export default function TripMapExperiment() {
                             />
                         </Pressable>
 
-                        <Pressable>
+                        <Pressable
+                            disabled={!isTripStarted ? true : false}
+                            onPress={() => {
+                                setTripStopped(true);
+                                setTripPaused(false);
+                                setTripStarted(false);
+                                stopTrip();
+                            }}
+                        >
                             <MapControlButton
                                 name="Stop trip"
                                 iconName="stop-circle-sharp"
@@ -125,11 +172,9 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 16,
         
-        // gap: 16,
         rowGap: 16,
         columnGap: 16,
         width: '100%',
-        // backgroundColor: '#FFFFFF'
     },
 
     tripRecenter: {
@@ -140,7 +185,20 @@ const styles = StyleSheet.create({
     tripStartStop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        // width: '100%'
-        // backgroundColor: '#ffffff',
     }
 })
+
+const lineLayerStyle: LineLayerStyle = {
+    lineColor: ['get', 'line-color'],
+    lineWidth: 6.0,
+    lineCap: 'round',
+    lineJoin: 'round'
+};
+
+const circleLayerStyle: CircleLayerStyle = {
+    circleColor: '#1900fd',
+}
+
+const symbolLayerStyle: SymbolLayerStyle = {
+    textField: ['get', 'title']
+}
