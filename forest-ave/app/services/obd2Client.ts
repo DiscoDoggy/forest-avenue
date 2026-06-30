@@ -108,6 +108,7 @@ export class OBD2Client {
         }
 
         await this.btd.disconnect();
+        this.btd = undefined;
     }
 
     // the error handling here suggests that we unsubscribe, disconnect so that 

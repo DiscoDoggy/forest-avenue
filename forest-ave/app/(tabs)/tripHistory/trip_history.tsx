@@ -1,6 +1,6 @@
-import { MOCK_TRIPS } from "../utils/dummyTrips";
-import { FlatList } from "react-native";
-import TripHistoryCard from "../components/tripHistoryCard";
+import { MOCK_TRIPS } from "../../utils/dummyTrips";
+import { FlatList, View } from "react-native";
+import TripHistoryCard from "../../components/tripHistoryCard";
 import { useSQLiteContext } from "expo-sqlite";
 import { Trip, TripsDAO } from "@/db/trips";
 import { useEffect, useState } from "react";
@@ -36,7 +36,7 @@ export default function TripHistoryScreen() {
     return (
         <FlatList 
             data={trips} 
-            renderItem={({item}) => <TripHistoryCard trip={item} />}
+            renderItem={({item}) => <TripHistoryCard trip={item}  /> }
         />
     )
 }

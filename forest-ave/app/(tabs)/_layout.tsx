@@ -22,7 +22,7 @@ export default function TabsLayout() {
                     />
                 
                     <Tabs.Screen 
-                        name="trip_map" 
+                        name="trip_map_testing" 
                         options={{ 
                             title: 'Drive',
                             tabBarIcon: ({color, focused}) => (
@@ -52,7 +52,7 @@ export default function TabsLayout() {
                     />
 
                     <Tabs.Screen 
-                        name="trip_history" 
+                        name="tripHistory" 
                         options={{
                             title: 'Trips',
                             tabBarIcon: ({color, focused}) => (
