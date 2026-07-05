@@ -1,6 +1,5 @@
 import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { Trip } from "@/db/trips";
-import { convertUnixTimeToLocalDateTime } from '../utils/dateTimeConversion';
 import { useRouter } from 'expo-router';
 
 interface TriphistoryCardProps {
@@ -8,9 +7,16 @@ interface TriphistoryCardProps {
 }
 
 export default function TripHistoryCard({trip}: TriphistoryCardProps) {
+    console.log(`buh ${trip.id}`)
     const router = useRouter();
     const handleTripPressed = () => {
-        router.navigate(`/(tabs)/tripHistory/[tripId]`)
+        console.log(`navigation pressed`);
+        router.push({
+            pathname: `/(tabs)/tripHistory/[tripId]`,
+            params: {
+                tripId: trip.id
+            }
+        });
     }
 
     return (

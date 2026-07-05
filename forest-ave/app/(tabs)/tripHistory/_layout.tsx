@@ -1,29 +1,21 @@
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import { withLayoutContext } from "expo-router";
+import { Stack } from "expo-router";
 
-const TopTabs = withLayoutContext(
-    createMaterialTopTabNavigator().Navigator,
-    undefined,
-    true
-);
-
-export default function TopTabsLayout() {
+export default function TripHistoryLayout() {
     return (
-        <TopTabs>
-            <TopTabs.Screen 
-                name="trips_overview"    
+        <Stack>
+            <Stack.Screen
+                name="index"
                 options={{
-                    title: "Overview"
+                    headerShown: false
                 }}
             />
 
-            <TopTabs.Screen 
-                name="trip_history"            
+            <Stack.Screen
+                name="[tripId]"
                 options={{
-                    title: "Trips"
+                    title: "Trip Details"
                 }}
             />
-
-        </TopTabs>
+        </Stack>
     );
 }
