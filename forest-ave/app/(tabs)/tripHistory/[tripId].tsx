@@ -98,32 +98,41 @@ export default function TripOverviewScreen() {
                 </MapView>
             {/* </View> */}
 
-            <View>
-                <View>
-                    <View>
-                        <Text>
+            <View style={styles.statsContainer}>
+                <View style={styles.topStatsContainer}>
+                    <View style={styles.statContainer}>
+                        <Text style={styles.statsTitle}>
+                            Avg. Fuel Efficiency
+                        </Text>
+                        <Text style={styles.statText}>
                             {trip.tripAggResults.avgMpg}
                         </Text>
                     </View>
-                    <View>
-                        <Text>
+                    <View style={styles.statContainer}>
+                        <Text style={styles.statsTitle}>
+                            Fuel Used (Gal)
+                        </Text>
+                        <Text style={styles.statText}>
                             {trip.tripAggResults.avgSpeed}
                         </Text>
                     </View>
                 </View>
 
-                <View>
-                    <View>
-                        <Text>
+                <View style={styles.topStatsContainer}>
+                    <View style={styles.statContainer}>
+                        <Text style={styles.statsTitle}>Distance Traveled</Text>
+                        <Text style={styles.statText}>
                             {trip.tripAggResults.distanceTraveled}
                         </Text>
                     </View>
-                    <View>
-                        <Text>
-                            {'some other stat'}
+                    <View style={styles.statContainer}>
+                        <Text style={styles.statsTitle}>Average Speed</Text>
+                        <Text style={styles.statText}>
+                            {23.6}
                         </Text>
                     </View>
                 </View>
+
             </View>
         </View>
     )
@@ -135,6 +144,54 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         borderRadius: 12,
         width: '100%'
+    },
+
+    topStatsContainer: {
+        flexDirection: 'row',
+        // justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+    },
+
+    statsContainer: {
+        flexDirection: 'column',
+        marginVertical: 8,
+        marginHorizontal: 4,
+        borderRadius: 12,
+        padding: 16,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+    },
+
+    statsTitle: {
+        fontSize: 14,
+        fontWeight: 'semibold'
+    },
+
+    statText: {
+        justifyContent: 'center',
+        fontSize: 24,
+        fontWeight: 'bold'
+
+    },
+
+    statContainer: {
+        flex: 1,
+        marginHorizontal: 8,
+        marginVertical: 8,
+        padding: 16,
+        borderRadius:16,
+        backgroundColor: "#FFFFFF",
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.32,
+        shadowRadius: 5.46,
+
+        elevation: 9,
     }
 });
 
