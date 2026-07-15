@@ -104,11 +104,18 @@ export class TripsDAO implements TripsDAOInterface {
                 $distance_traveled 
             )  
         `);
-        
+        let tripNameToStore = '';
+        if(!trip.tripName) {
+            tripNameToStore = 'New Trip Name';
+        } else {
+            tripNameToStore = trip.tripName;
+        }
+
         try {
             await this.dbConn.withExclusiveTransactionAsync(async () => {
                 let result = await tripInsertStmt.executeAsync({
                     $id: trip.id,
+                    $trip_name: tripNameToStore,
                     $vin: trip.vehicleId,
                     $start_time: trip.startTime,
                     $end_time: trip.endTime

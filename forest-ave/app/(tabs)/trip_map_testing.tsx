@@ -1,11 +1,12 @@
 import Mapbox, { MapView, LocationPuck, Camera, ShapeSource, LineLayer, LineLayerStyle, CircleLayer, CircleLayerStyle, SymbolLayer, SymbolLayerStyle } from "@rnmapbox/maps";
 import { useRef, useState } from "react";
-import { View, StyleSheet, Pressable, Text } from "react-native";
+import { View, StyleSheet, Pressable, Text, Modal } from "react-native";
 import MapStatWidget from "../components/stat_widget";
 import MapControlButton from "../components/mapControlButton";
 import { tripRecorder } from "../services/serviceContainer";
 import { useGpsStore } from "../services/gpsStore";
 import { useMpgDataStore } from "../services/mpgStateStore";
+import AcceptRejectModal from "../components/acceptRejectModal";
 
 Mapbox.setAccessToken("pk.eyJ1IjoidGhlZmxpZ2h0bGVzc2JpcmQiLCJhIjoiY21tazN3MTQzMWdybzJ3b2M4dHF0Y3JrZSJ9.vwuF1cIXhLfvYU-p1PL7Hw");
 Mapbox.setTelemetryEnabled(false);
@@ -21,6 +22,8 @@ export default function TripMapExperiment() {
     const [isTripPaused, setTripPaused]  = useState(false) ;
     const [isTripStopped, setTripStopped] = useState(false);
 
+    const [isEndTripModalShowing, setEndTripModalShowing] = useState(false);
+
     const startTrip = () => {
         tripRecorder.startTrip();        
     };
@@ -29,13 +32,29 @@ export default function TripMapExperiment() {
         tripRecorder.pauseTrip();
     };
 
-    const stopTrip = () => {
-        tripRecorder.endTrip();
+    const stopTrip = async () => {
+        tripRecorder.pauseTrip();
+        setEndTripModalShowing(true);
     };
+
+    const onModalClose = async (tripName: string) => {
+        tripRecorder.setTripName(tripName);
+        await stopTrip();
+        await tripRecorder.endTrip();
+        setEndTripModalShowing(false);
+    }
 
     return (
         <View style={styles.page}>
             {/* -- map container */}
+            <AcceptRejectModal 
+                isVisible={isEndTripModalShowing} 
+                onClose={onModalClose}
+                acceptButtonColor="#FFFFFF"
+                rejectButtonColor="#FFFFFF"
+                title="Would you like to name the trip?"
+                description="(You can always change this later)"
+            />
                  <MapView
                     scaleBarEnabled={false}
                     style={styles.map}
@@ -125,11 +144,11 @@ export default function TripMapExperiment() {
 
                         <Pressable
                             disabled={!isTripStarted ? true : false}
-                            onPress={() => {
+                            onPress={async () => {
                                 setTripStopped(true);
                                 setTripPaused(false);
                                 setTripStarted(false);
-                                stopTrip();
+                                await stopTrip();
                             }}
                         >
                             <MapControlButton
@@ -187,6 +206,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     }
 })
+
 
 const lineLayerStyle: LineLayerStyle = {
     lineColor: ['get', 'line-color'],

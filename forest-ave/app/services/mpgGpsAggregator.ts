@@ -130,7 +130,7 @@ export class MpgGpsAggregator {
         //create geojson
         let positions = [];
         for(const position of coordSegment.longLatPoints) {
-            positions.push([position.coords.longitude, position.coords.latitude,]);
+            positions.push([position.coords.longitude, position.coords.latitude]);
         }
 
         let lineColor = ''
@@ -176,8 +176,19 @@ export class MpgGpsAggregator {
         if(!this.tripInfo) {
             throw new Error('attempted to store trip but no trip information could be found');
         }
+
+        let avgSpeed = 0;
+        for(const mpgRecord of this.longBuffer.rawMpgData) {
+            if(mpgRecord.vehicleSpeed) {
+                avgSpeed += mpgRecord.vehicleSpeed; 
+            }
+        }
+
+        avgSpeed /= this.longBuffer.rawMpgData.length;
+
         const newTrip: Trip = {
             id: this.tripInfo.tripId,
+            tripName: this.tripInfo.tripName,
             vehicleId: 'TEST CAR 123',
             ...(this.tripInfo.tripStartTime ?  {startTime: this.tripInfo.tripStartTime} : {startTime: Date.now() - 3600}),
             ...(this.tripInfo.tripEndTime ? {endTime: this.tripInfo.tripEndTime} : {endTime: Date.now()}), 
@@ -185,9 +196,10 @@ export class MpgGpsAggregator {
                 geoJson: geoJsonStr,
                 distanceTraveled: this.cumulativeDist,
                 avgMpg: this.cumulativeMpg / this.numMpgCalculations,
-                avgSpeed: 35
+                avgSpeed: avgSpeed
             }
         }
+
 
         const db = await getDB();
         const tripDao = new TripsDAO(db)

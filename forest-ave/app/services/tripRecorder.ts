@@ -49,7 +49,9 @@ export class TripRecorder {
         if(!this.tripStatsAggregator.tripInfo) {
             throw new Error('Tried to set trip name but no active trip exists');
         }
-
-        this.tripStatsAggregator.tripInfo.tripName = tripName;
+        
+        //TODO ADD VALIDATION WITH DIFFERNT INPUT ERROR TYPES TO BE DISPALYED ON FRONTEND
+        const newTripName = tripName.trim();
+        this.tripStatsAggregator.tripInfo.tripName = newTripName;
     }
 }
