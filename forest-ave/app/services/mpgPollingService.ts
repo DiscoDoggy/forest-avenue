@@ -22,8 +22,8 @@ export class MpgPollingService {
 
     constructor(obdClient: OBD2Client, mpgGpsAggregator: MpgGpsAggregator) {
         this.obdClient = obdClient;
-        this.mpgGpsAggregator = mpgGpsAggregator;
         this.isPollingEnabled = false;
+        this.mpgGpsAggregator = mpgGpsAggregator;
     }
 
     startMPGPolling() {
@@ -50,19 +50,9 @@ export class MpgPollingService {
 
         const jobTimeElapsed = endTime - startTime;
         mpgRecord.mpgQueryStartTime = startTime;
-        // write to storage the mpg which should trigger the application state to change if things are subscribed 
-        // to members of these fields 
-        // our syncronoization strategy makes a makes a big assumption:
-            // that the mpg is changed in the state after all other components 
-        // setWholeState(
-        //     mpgRecord.maf,
-        //     mpgRecord.vehicleSpeed,
-        //     mpgRecord.stft,
-        //     mpgRecord.ltft,
-        //     mpgRecord.mpg,
-        //     mpgRecord.mpgQueryStartTime
-        // );
-
+        if(!this.mpgGpsAggregator) {
+            throw new Error(`mpgGpsAggregator is likely undefined`);
+        }
         this.mpgGpsAggregator.addMpgData(mpgRecord);
 
         this.scheduleNextJob(jobTimeElapsed, 500);

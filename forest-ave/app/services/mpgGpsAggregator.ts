@@ -2,7 +2,10 @@ import { LocationObject } from "expo-location";
 import { MpgRecord } from "./mpgPollingService";
 import { HaversineDistance } from "../utils/distanceFormulas";
 import { Feature, Geometry } from "geojson";
-import { setLocationHistory } from "./gpsStore";
+import { setLocationHistory, useGpsStore } from "./gpsStore";
+import { getDB } from "@/db/dbConnSingletonService";
+import { Trip, TripsDAO } from "@/db/trips";
+import { setMpg } from "./mpgStateStore";
 
 // type Coordinates = {
 //     longitude: number
@@ -25,11 +28,19 @@ type AggregatedRawMpgGpsData = {
     smoothedLinkedMpgGpsSegments: MpgAlongCoordsSegment[]
 }
 
+export type PreliminaryTripInfo = {
+    tripId: string,
+    tripName?: string,
+    tripStartTime?: number,
+    tripEndTime?: number
+};
+
 //so the goal of this is to pair the incoming mpg data with the incoming gps data
 //once enough data is obtained, or a sufficient amount of time has passed, we want to flush buffer
 // to the Zustand state so that the consumers of the zustand state can update accordingly
 // we also want to keep enough data such that on occasion we can write to permanent storage throughout the routes progress
 export class MpgGpsAggregator {
+    tripInfo?: PreliminaryTripInfo;
 
     gpsData: LocationObject[];
     mpgData: MpgRecord[];
@@ -40,7 +51,10 @@ export class MpgGpsAggregator {
     segmentGeoJson: Feature<Geometry>;
 
     cumulativeDist: number;
+    cumulativeMpgResetable: number;
     cumulativeMpg: number;
+    numMpgCalculations: number;
+    totalDistance: number;
 
     constructor() {
         this.gpsData = [];
@@ -52,6 +66,7 @@ export class MpgGpsAggregator {
             rawMpgData: [],
             rawGpsData: [],
             smoothedLinkedMpgGpsSegments: []
+
         };
 
         this.segmentGeoJson = {
@@ -64,15 +79,19 @@ export class MpgGpsAggregator {
         };
 
         this.cumulativeDist = 0;
+        this.cumulativeMpgResetable = 0;
         this.cumulativeMpg = 0;
-        
+        this.totalDistance = 0;
+        this.numMpgCalculations = 0;
     }
 
     addGpsData(location: LocationObject) {
         console.log('entering add gps data');
         console.log(`CUMULATIVE DISTANCE: ${this.cumulativeDist}`)
         if(this.gpsData.length > 0 ) {
-            this.cumulativeDist += HaversineDistance(this.gpsData[this.gpsData.length - 1], location);
+            const p2pDist = HaversineDistance(this.gpsData[this.gpsData.length - 1], location)
+            this.cumulativeDist += p2pDist
+            this.totalDistance +=  p2pDist;
         }
 
         this.gpsData.push(location);
@@ -81,10 +100,14 @@ export class MpgGpsAggregator {
             this.aggregate();
             this.flushToSubs();
         }
+
+        this.numMpgCalculations += 1;
     }
 
     addMpgData(mpgData: MpgRecord) {
         this.mpgData.push(mpgData);
+        setMpg(mpgData.mpg);
+        this.cumulativeMpgResetable += mpgData.mpg;
         this.cumulativeMpg += mpgData.mpg;
     }
 
@@ -97,7 +120,7 @@ export class MpgGpsAggregator {
             longLatPoints: this.gpsData
         };
 
-        const smoothedMpg = this.cumulativeMpg / this.mpgData.length;
+        const smoothedMpg = this.cumulativeMpgResetable / this.mpgData.length;
 
         const segmentMpg: MpgAlongCoordsSegment = {
             segment: coordSegment,
@@ -107,7 +130,7 @@ export class MpgGpsAggregator {
         //create geojson
         let positions = [];
         for(const position of coordSegment.longLatPoints) {
-            positions.push([position.coords.longitude, position.coords.latitude,]);
+            positions.push([position.coords.longitude, position.coords.latitude]);
         }
 
         let lineColor = ''
@@ -139,6 +162,7 @@ export class MpgGpsAggregator {
         //clear raw data thats been aggregated already
         this.gpsData = [this.gpsData[this.gpsData.length - 1]];
         this.cumulativeDist = 0;
+        this.cumulativeMpgResetable = 0;
         this.mpgData = [];
     }
 
@@ -147,7 +171,63 @@ export class MpgGpsAggregator {
         setLocationHistory(this.segmentGeoJson);
     }
 
-    flushToPermStorage() {
-        return;
+    async flushToPermStorage() {
+        const geoJsonStr = JSON.stringify(useGpsStore.getState().locationHistory);
+        if(!this.tripInfo) {
+            throw new Error('attempted to store trip but no trip information could be found');
+        }
+
+        let avgSpeed = 0;
+        for(const mpgRecord of this.longBuffer.rawMpgData) {
+            if(mpgRecord.vehicleSpeed) {
+                avgSpeed += mpgRecord.vehicleSpeed; 
+            }
+        }
+
+        avgSpeed /= this.longBuffer.rawMpgData.length;
+
+        const newTrip: Trip = {
+            id: this.tripInfo.tripId,
+            tripName: this.tripInfo.tripName,
+            vehicleId: 'TEST CAR 123',
+            ...(this.tripInfo.tripStartTime ?  {startTime: this.tripInfo.tripStartTime} : {startTime: Date.now() - 3600}),
+            ...(this.tripInfo.tripEndTime ? {endTime: this.tripInfo.tripEndTime} : {endTime: Date.now()}), 
+            tripAggResults: {
+                geoJson: geoJsonStr,
+                distanceTraveled: this.cumulativeDist,
+                avgMpg: this.cumulativeMpg / this.numMpgCalculations,
+                avgSpeed: avgSpeed
+            }
+        }
+
+
+        const db = await getDB();
+        const tripDao = new TripsDAO(db)
+        
+        tripDao.createTrip(newTrip)
+    }
+
+    clearData() {
+        this.tripInfo = undefined;
+        this.gpsData = [];
+        this.mpgData = [];
+        this.shortBuffer = [];
+        this.longBuffer = {
+            rawMpgData: [],
+            rawGpsData: [],
+            smoothedLinkedMpgGpsSegments: []
+        };
+
+        this.segmentGeoJson = {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'LineString',
+                coordinates:[]
+            }
+        };
+
+        this.cumulativeDist = 0;
+        this.cumulativeMpgResetable = 0;
     }
 }

@@ -10,13 +10,14 @@ export type Trip = {
     id: string,
     vehicleId: string,
     userId?: string,
+    tripName?: string,
     startTime: number,
     endTime: number,
 
     tripAggResults: TripAggregatedResults,
 }
 
-export interface TripsDAOInterface {
+interface TripsDAOInterface {
     getAllTrips(): Promise<Trip[]>,
     getTripById(id: string): Promise<Trip | null> ,
 
@@ -24,7 +25,7 @@ export interface TripsDAOInterface {
     deleteTrip(id: string): Promise<void>,
 }
 
-class TripsDAO implements TripsDAOInterface {
+export class TripsDAO implements TripsDAOInterface {
     private dbConn: SQLite.SQLiteDatabase;
 
     constructor(dbConn: SQLite.SQLiteDatabase) {
@@ -85,7 +86,7 @@ class TripsDAO implements TripsDAOInterface {
 
     async createTrip(trip: Trip) {
         const tripInsertStmt = await this.dbConn.prepareAsync(`
-            INSERT INTO trips(id, vin, start_time, end_time) VALUES($id, $vin, $start_time, $end_time)
+            INSERT INTO trips(id, vin, trip_name, start_time, end_time) VALUES($id, $vin, $trip_name, $start_time, $end_time)
         `);
 
         const tripAggStatsStmt = await this.dbConn.prepareAsync(`
@@ -103,11 +104,18 @@ class TripsDAO implements TripsDAOInterface {
                 $distance_traveled 
             )  
         `);
-        
+        let tripNameToStore = '';
+        if(!trip.tripName) {
+            tripNameToStore = 'New Trip Name';
+        } else {
+            tripNameToStore = trip.tripName;
+        }
+
         try {
             await this.dbConn.withExclusiveTransactionAsync(async () => {
                 let result = await tripInsertStmt.executeAsync({
                     $id: trip.id,
+                    $trip_name: tripNameToStore,
                     $vin: trip.vehicleId,
                     $start_time: trip.startTime,
                     $end_time: trip.endTime
@@ -151,6 +159,7 @@ class TripsDAO implements TripsDAOInterface {
 
         const processedTrip: Trip = {
             id: trip.id,
+            tripName: trip.trip_name,
             vehicleId: trip.vin,
             startTime: trip.start_time,
             endTime: trip.end_time,

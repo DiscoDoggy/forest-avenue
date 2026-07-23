@@ -9,21 +9,56 @@ type PendingRequest = {
 };
 
 export class OBD2Client {
-    btd: BluetoothDevice;
+    btd?: BluetoothDevice;
     readSubscription: BluetoothEventSubscription | null=null;
     private readBuffer: string; 
     private currWriteQueryReq: PendingRequest | null=null;
 
-    constructor(btd: BluetoothDevice) {
-        this.btd = btd;
+    constructor() {
         this.readBuffer = '';
         this.currWriteQueryReq = null;
 
-        this.initOBD2Client();
+    }
+
+    async connect(btd: BluetoothDevice) {
+        console.log('enter obd2client connect function');
+        if(this.btd && (await this.btd.isConnected())) {
+            await this.btd.disconnect();
+        }
+        if(this.readSubscription) {
+            this.readSubscription.remove();
+        }
+        this.readBuffer = '';
+
+        this.btd = btd;
+        
+        const isConnected = await btd.isConnected(); 
+        console.log('isConnected runs');
+        if(isConnected) { //device is already connected. Do we want to throw an error that gets handled at the app level? 
+            console.log('device already connected');
+            return;
+        }
+
+        const connection = await btd.connect({delimiter: '>', secureSocket: false});
+        console.log('.connect runs')
+        if(!connection) { //ideally we retry
+            throw new Error(`attempted to connect to ${btd.name} but could not establish a connection`);
+        }
+        console.log('before init');
+        await this.initOBD2Client();
+        console.log('after init')
+    }
+
+    async disconnect() {
+        if(!this.btd || !this.btd.isConnected()) {
+            return;    
+        }
+
+        this.removeBtdConnection(); 
     }
     
     async queryOBD2(obdCmd: string): Promise<string> {
-        if(this.btd === null || !this.btd.isConnected()) {
+        if(!this.btd || !(await this.btd.isConnected())) {
             throw new Error(`attempted to query obd2 but no bluetooth device connected`);
         }
 
@@ -66,13 +101,23 @@ export class OBD2Client {
             this.readSubscription.remove();
         }
 
-        await this.btd.disconnect();
         this.readBuffer = '';
+
+        if(!this.btd) {
+            return;
+        }
+
+        await this.btd.disconnect();
+        this.btd = undefined;
     }
 
     // the error handling here suggests that we unsubscribe, disconnect so that 
     // a connection can be tried again and we wont have duplicate connections
     private async initOBD2Client() {
+        console.log('during init');
+        if(!this.btd) {
+            throw new Error('while initializing obd2Client, could not detect btd');
+        }
         this.readSubscription = this.btd.onDataReceived((event) => {
             this.handleBtdBufferData(event.data);
         });

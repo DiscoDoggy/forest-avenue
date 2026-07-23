@@ -7,9 +7,9 @@ export class GpsService {
     subscription: Location.LocationSubscription | null;
     mpgGpsAggregator: MpgGpsAggregator;
 
-    constructor(mpgGpsAggregator: MpgGpsAggregator) {
+    constructor(gpsStatsAggregator: MpgGpsAggregator) {
         this.subscription = null;
-        this.mpgGpsAggregator = mpgGpsAggregator;
+        this.mpgGpsAggregator = gpsStatsAggregator;
     }
 
 //https://docs.mapbox.com/help/tutorials/getting-started-react-native/?step=7
@@ -51,6 +51,9 @@ export class GpsService {
     }
 
     onReceiveLocation(location: Location.LocationObject) {
+        if(!this.mpgGpsAggregator) {
+            throw new Error(`mpg gps aggregator is likely undefined`);
+        }
         this.mpgGpsAggregator.addGpsData(location);
 
         setCurrLocation(location);

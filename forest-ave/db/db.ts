@@ -2,7 +2,8 @@ import * as SQLite from 'expo-sqlite'
 
 export async function createDBConnection() {
     try {
-        const db = SQLite.openDatabaseAsync('forestAve.db')
+        const db = SQLite.openDatabaseAsync('forestAve.db');
+        return db;
     } catch (e) {
         throw Error(`could not establish connection to local database: ${e}`);
     }
@@ -23,19 +24,20 @@ export async function initializeDB(db: SQLite.SQLiteDatabase) {
             );
 
             CREATE TABLE IF NOT EXISTS vehicles (
-                vin TEXT NOT NULL UNIQUE 
+                vin TEXT PRIMARY KEY 
             );
 
             CREATE TABLE IF NOT EXISTS trips (
                 id TEXT NOT NULL UNIQUE,
-                vin TEXT NOT NULL UNIQUE,
+                trip_name TEXT,
+                vin TEXT NOT NULL,
                 user_id TEXT,
                 start_time DATETIME,
                 end_time DATETIME,
 
                 FOREIGN KEY (vin) REFERENCES vehicles(vin)
                     ON DELETE CASCADE
-                    ON UPDATE CASCADE,
+                    ON UPDATE CASCADE
             );
 
             CREATE TABLE IF NOT EXISTS trip_results_aggregated(

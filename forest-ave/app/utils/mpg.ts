@@ -17,3 +17,7 @@ export function calculateInstMPGWithoutFuelTrims(MAF: number, VSS: number) {
     
     return distRate / ffr;
 }
+
+export function calculateTotalFuelConsumption(MPGs: number[], distanceInterval: number) {
+    return;
+}

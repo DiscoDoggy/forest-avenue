@@ -4,7 +4,7 @@ import RNBluetoothClassic, { BluetoothDevice } from 'react-native-bluetooth-clas
 import { useBluetooth } from '../contexts/bluetoothContexts';
 import Toast from "react-native-toast-message";
 import { assertIsError } from '../utils/errors';
-import { vehicleService } from '../services/serviceContainer';
+import { obd2Client } from '../services/serviceContainer';
 
 interface BlueToothDeviceCardProps {
     btd: BluetoothDevice //bluetooth device
@@ -47,7 +47,7 @@ export default function BluetoothConnScreen() {
 
     const handleBtdConnect = async(btd: BluetoothDevice) => {
         try{
-            await vehicleService.connect(btd);
+            await obd2Client.connect(btd);
             setConnectedDeviceName(btd.name);
         } catch(error) {
             assertIsError(error);
@@ -57,12 +57,12 @@ export default function BluetoothConnScreen() {
     };
 
     const onTextSubmit = async() => {
-        if(!vehicleService.obd2Client) {
+        if(!obd2Client) {
             Toast.show({type: 'error', text1: 'connection to obd2client not detected'});
             return;
         }
 
-        const res = await vehicleService.obd2Client.queryOBD2(getBtTextbox);
+        const res = await obd2Client.queryOBD2(getBtTextbox);
         setReceivedData(res);
     }
 
