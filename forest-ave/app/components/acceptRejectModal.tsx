@@ -50,7 +50,7 @@ export default function AcceptRejectModal({
                                 backgroundColor: rejectButtonColor
                             }
                             ]}
-                            onPressOut={async () => {await onClose(getNameInputText)}}     
+                            onPressOut={async () => {await onClose('')}}     
                         >
                             <Text style={{color:'#ff0000', fontWeight: 'bold'}}>No</Text>
                         </Pressable>
@@ -61,7 +61,7 @@ export default function AcceptRejectModal({
                                 backgroundColor: acceptButtonColor
                             }
                             ]}
-                            onPressOut={async () => {await onClose('')}}
+                            onPressOut={async () => {await onClose(getNameInputText)}}
                             >
                             <Text style={{color: '#0084ff', fontWeight: 'bold'}}>Yes</Text>
                         </Pressable> 
