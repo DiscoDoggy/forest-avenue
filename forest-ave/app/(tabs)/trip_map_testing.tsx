@@ -14,6 +14,8 @@ Mapbox.setTelemetryEnabled(false);
 export default function TripMapExperiment() {
     const camera = useRef<Camera>(null);
 
+    const [shouldFollowLoc, setShouldFollowLoc] = useState(true);
+
     const gpsMpgColoredLineSegments = useGpsStore((state) => state.locationHistory);
     const currGpsLocation = useGpsStore((state) => state.currLocation);
     const mpg = useMpgDataStore((state) => state.mpg);
@@ -35,6 +37,8 @@ export default function TripMapExperiment() {
     const stopTrip = async () => {
         tripRecorder.pauseTrip();
         setEndTripModalShowing(true);
+        setShouldFollowLoc(false);
+        
     };
 
     const onModalClose = async (tripName: string) => {
@@ -42,6 +46,10 @@ export default function TripMapExperiment() {
         await stopTrip();
         await tripRecorder.endTrip();
         setEndTripModalShowing(false);
+    }
+
+    const onRecenter = () => {
+        setShouldFollowLoc(true);
     }
 
     return (
@@ -58,6 +66,11 @@ export default function TripMapExperiment() {
                  <MapView
                     scaleBarEnabled={false}
                     style={styles.map}
+                    onCameraChanged={(e) => {
+                        if(e.gestures.isGestureActive) {
+                            setShouldFollowLoc(false);
+                        }
+                    }}
                 >
                     <LocationPuck
                         puckBearingEnabled
@@ -68,7 +81,8 @@ export default function TripMapExperiment() {
                     <Camera
                         ref={camera}
                         zoomLevel={17.1}
-                        centerCoordinate={[currGpsLocation?.coords.longitude!, currGpsLocation?.coords.latitude!]}
+                        followUserLocation={shouldFollowLoc}
+                        // centerCoordinate={[currGpsLocation?.coords.longitude!, currGpsLocation?.coords.latitude!]}
                         animationMode='moveTo'
                     />
                     <ShapeSource id='feature-source' shape={gpsMpgColoredLineSegments}>
@@ -108,7 +122,9 @@ export default function TripMapExperiment() {
                  {/* bottom controls */}
                 <View style={styles.tripControls}>
                     <View style={styles.tripRecenter}>
-                        <Pressable>
+                        <Pressable
+                            onPressOut={onRecenter} 
+                        >
                             <MapControlButton 
                                 name="Recenter"
                                 iconName="location-sharp"
@@ -121,7 +137,8 @@ export default function TripMapExperiment() {
                     </View>
 
                     <View style={styles.tripStartStop}>
-                        <Pressable 
+
+                        {!isTripStopped && (<Pressable 
                             onPress={() => {
                                 setTripPaused(!isTripPaused);
                                 setTripStarted(true);
@@ -140,9 +157,9 @@ export default function TripMapExperiment() {
                                 vertPadding={32}
                                 iconSize={32}
                             />
-                        </Pressable>
+                        </Pressable>)}
 
-                        <Pressable
+                        {!isTripStopped && (<Pressable
                             disabled={!isTripStarted ? true : false}
                             onPress={async () => {
                                 setTripStopped(true);
@@ -159,7 +176,7 @@ export default function TripMapExperiment() {
                                 vertPadding={32}
                                 iconSize={32}
                             />
-                        </Pressable>
+                        </Pressable>)}
                     </View>
                 </View>
         </View>

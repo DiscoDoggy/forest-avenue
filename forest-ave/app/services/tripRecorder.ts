@@ -1,6 +1,8 @@
 import { GpsService } from "./gpsService";
+import { resetGPSState } from "./gpsStore";
 import { MpgGpsAggregator } from "./mpgGpsAggregator";
 import { MpgPollingService } from "./mpgPollingService";
+import { resetMPGState } from "./mpgStateStore";
 import { VehicleService } from "./vehicleService";
 import uuid from 'react-native-uuid';
 
@@ -40,9 +42,13 @@ export class TripRecorder {
             throw new Error('Tried to end trip but no active trip information found');
         }
 
+        this.gpsRecorder.disconnect();
         this.tripStatsAggregator.tripInfo.tripEndTime = Date.now();
         await this.tripStatsAggregator.flushToPermStorage();
         this.tripStatsAggregator.clearData();
+
+        resetGPSState();
+        resetMPGState();
     }
 
     setTripName(tripName: string) {

@@ -13,7 +13,8 @@ export default function TripHistoryLayout() {
             <Stack.Screen
                 name="[tripId]"
                 options={{
-                    title: "Trip Details"
+                    title: "Trip Details",
+                    headerShown: false
                 }}
             />
         </Stack>

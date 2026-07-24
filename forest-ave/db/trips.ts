@@ -1,3 +1,4 @@
+import { convertUnixTimeToLocalDateTime } from '@/app/utils/dateTimeConversion';
 import * as SQLite from 'expo-sqlite'
 
 export type TripAggregatedResults = {
@@ -11,8 +12,8 @@ export type Trip = {
     vehicleId: string,
     userId?: string,
     tripName?: string,
-    startTime: number,
-    endTime: number,
+    startTime: number | string,
+    endTime: number | string,
 
     tripAggResults: TripAggregatedResults,
 }
@@ -161,8 +162,8 @@ export class TripsDAO implements TripsDAOInterface {
             id: trip.id,
             tripName: trip.trip_name,
             vehicleId: trip.vin,
-            startTime: trip.start_time,
-            endTime: trip.end_time,
+            startTime: convertUnixTimeToLocalDateTime(trip.start_time),
+            endTime: convertUnixTimeToLocalDateTime(trip.end_time),
             tripAggResults: aggTripStats 
         };
 

@@ -12,7 +12,6 @@ type GpsAction = {
     updateLocationHistory: (newSegment: Feature<Geometry>) => void
 }
 
-
 const defaultCoords: LocationObjectCoords = {
     latitude: 39.8333,
     longitude: -98.5833,
@@ -53,3 +52,13 @@ export const setLocationHistory = (newSegment: Feature<Geometry>) => {
     }));
     console.log('ENTER SET LOCATION HISTORY');
 };
+
+export function resetGPSState() {
+    useGpsStore.setState({
+        currLocation: defaultLocation,
+        locationHistory: {
+            type: 'FeatureCollection',
+            features: []
+        }
+    });
+}

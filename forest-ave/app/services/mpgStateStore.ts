@@ -68,3 +68,14 @@ export const setWholeState = (
         mpg: inMpg,
         mpgQueryStartTime: inMpgQueryStartTime
     });
+
+export function resetMPGState() {
+    setWholeState(
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+    );
+}

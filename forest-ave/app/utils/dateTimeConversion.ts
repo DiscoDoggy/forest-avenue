@@ -2,7 +2,7 @@
 
 export function convertUnixTimeToLocalDateTime(unixTimeStamp: number): string {
     console.log(`Timestamp: ${unixTimeStamp}`);
-    const date = new Date(unixTimeStamp * 1000);
+    const date = new Date(unixTimeStamp);
 
     // Define precise Intl options for '01/31/2026 6:34pm'
     const options: Intl.DateTimeFormatOptions = {

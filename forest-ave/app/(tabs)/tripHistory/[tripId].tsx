@@ -105,7 +105,7 @@ export default function TripOverviewScreen() {
                             Avg. Fuel Efficiency 🔥
                         </Text>
                         <Text style={styles.statText}>
-                            {trip.tripAggResults.avgMpg}
+                            {trip.tripAggResults.avgMpg.toFixed(2)}
                         </Text>
                     </View>
                     <View style={styles.statContainer}>
@@ -113,7 +113,7 @@ export default function TripOverviewScreen() {
                             Fuel Used(Gal)⛽
                         </Text>
                         <Text style={styles.statText}>
-                            {trip.tripAggResults.avgSpeed}
+                            {(trip.tripAggResults.distanceTraveled / trip.tripAggResults.avgMpg).toFixed(2)}
                         </Text>
                     </View>
                 </View>
@@ -122,17 +122,16 @@ export default function TripOverviewScreen() {
                     <View style={styles.statContainer}>
                         <Text style={styles.statsTitle}>Distance Traveled 🚙</Text>
                         <Text style={styles.statText}>
-                            {trip.tripAggResults.distanceTraveled}
+                            {trip.tripAggResults.distanceTraveled.toFixed(2)}
                         </Text>
                     </View>
                     <View style={styles.statContainer}>
                         <Text style={styles.statsTitle}>Average Speed💨</Text>
                         <Text style={styles.statText}>
-                            {23.6}
+                            {trip.tripAggResults.avgSpeed.toFixed(2)}
                         </Text>
                     </View>
                 </View>
-
             </View>
         </View>
     )
