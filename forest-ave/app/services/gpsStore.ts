@@ -12,6 +12,8 @@ type GpsAction = {
     updateLocationHistory: (newSegment: Feature<Geometry>) => void
 }
 
+// location object coords requires latitude and longitude. Some random coords
+// have been provided to be the "currentLocation" when first starting.
 const defaultCoords: LocationObjectCoords = {
     latitude: 39.8333,
     longitude: -98.5833,
