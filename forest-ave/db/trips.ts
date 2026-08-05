@@ -1,4 +1,6 @@
+import { MpgRecord } from '@/app/services/mpgPollingService';
 import { convertUnixTimeToLocalDateTime } from '@/app/utils/dateTimeConversion';
+import { LocationObject } from 'expo-location';
 import * as SQLite from 'expo-sqlite'
 
 export type TripAggregatedResults = {
@@ -9,12 +11,12 @@ export type TripAggregatedResults = {
 }
 
 export type TripRawMpgResults = {
-    instMpg: number,
-    MAF: number,
-    VSS: number,
-    LTFT?: number,
-    STFT?: number,
-    recorded_at: number
+    instMpg: number[],
+    MAF: number[],
+    VSS: number[],
+    LTFT?: number[],
+    STFT?: number[],
+    recorded_at: number[]
 }
 
 export type TripRawGPSResults = {
@@ -34,8 +36,9 @@ export type Trip = {
     endTime: number | string,
 
     tripAggResults: TripAggregatedResults,
-    tripRawMpgStats: TripRawMpgResults,
-    tripGPSRaws: TripRawGPSResults
+    // tripRawMpgStats: TripRawMpgResults,
+    tripRawMpgStats?: MpgRecord[],
+    tripGPSRaws?: LocationObject[] 
 }
 
 interface TripsDAOInterface {
@@ -126,9 +129,15 @@ export class TripsDAO implements TripsDAOInterface {
             )  
         `);
         
-        const tripMPGStatsRaw = await this.dbConn.prepareAsync(`
-            INSERT INTO      
-        `) 
+        const tripMPGStatsRawInsertStmt = await this.dbConn.prepareAsync(`
+            INSERT INTO trip_mpg_stats_raw (trip_id, inst_mpg, recorded_at, MAF, VSS, LTFT, STFT)
+            VALUES ($trip_id, $inst_mpg, $recorded_at, $MAF, $VSS, $LTFT, $STFT)
+        `);
+
+        const tripGPSStatsRawInsertStmt = await this.dbConn.prepareAsync(`
+            INSERT INTO trip_gps_stats_raw (trip_id, latitude, longitude, location_acc, altitude, altitude_acc, recorded_at) 
+            VALUES ($trip_id, $latitude, $longitude, $location_acc, $altitude, $altitude_acc, $recorded_at)
+        `)
 
         let tripNameToStore = '';
         if(!trip.tripName) {
@@ -154,6 +163,36 @@ export class TripsDAO implements TripsDAOInterface {
                     $avg_speed: trip.tripAggResults.avgSpeed,
                     $distance_traveled: trip.tripAggResults.distanceTraveled
                 });
+
+                //raw mpg insert
+                if(trip.tripRawMpgStats) {
+                    for(const record of trip.tripRawMpgStats) {
+                        await tripMPGStatsRawInsertStmt.executeAsync({
+                            $trip_id: trip.id,
+                            $inst_mpg: record.mpg,
+                            $MAF: record.maf,
+                            $VSS: record.vehicleSpeed,
+                            $ltft: record.ltft,
+                            $stft: record.stft,
+                            $recorded_at: record.mpgQueryStartTime
+                        });
+                    }
+                }
+
+                //gps raws
+                if(trip.tripGPSRaws){
+                    for (const record of trip.tripGPSRaws) {
+                        await tripGPSStatsRawInsertStmt.executeAsync({
+                            $trip_id: trip.id,
+                            $latitude: record.coords.latitude,
+                            $longitude: record.coords.longitude,
+                            $location_acc: record.coords.accuracy,
+                            $altitude: record.coords.altitude,
+                            $altitude_acc: record.coords.altitudeAccuracy,
+                            $recorded_at: record.timestamp / 1000  // unix time is in seconds
+                        });
+                    }
+                }
             });
         } finally {
             await tripInsertStmt.finalizeAsync();

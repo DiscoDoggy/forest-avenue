@@ -1,5 +1,3 @@
-import * as SQLite from 'expo-sqlite';
-
 export const MVersion = 1
 
 export const mUpQuery = `

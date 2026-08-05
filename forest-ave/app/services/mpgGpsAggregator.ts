@@ -66,7 +66,6 @@ export class MpgGpsAggregator {
             rawMpgData: [],
             rawGpsData: [],
             smoothedLinkedMpgGpsSegments: []
-
         };
 
         this.segmentGeoJson = {
@@ -197,7 +196,9 @@ export class MpgGpsAggregator {
                 distanceTraveled: this.cumulativeDist,
                 avgMpg: this.cumulativeMpg / this.numMpgCalculations,
                 avgSpeed: avgSpeed
-            }
+            },
+            tripRawMpgStats: this.longBuffer.rawMpgData,
+            tripGPSRaws: this.longBuffer.rawGpsData
         }
 
 

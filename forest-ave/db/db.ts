@@ -2,9 +2,9 @@ import * as SQLite from 'expo-sqlite';
 
 //migrations
 import * as MV1 from './migrations/1_add_raw_gps_create_at_time_gps_stats_raw';
-import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
+import * as MV2 from './migrations/2_add_location_acc_altitude_acc_trip_gps_raw'
 
-const migrations = [MV1]
+const migrations = [MV1, MV2]
 
 type UserVersion = {
     user_version: number;
