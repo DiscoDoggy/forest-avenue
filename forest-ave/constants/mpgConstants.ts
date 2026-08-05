@@ -6,3 +6,11 @@ export const POUNDS_OF_GAS_PER_GALLON = 6.17;
 export const SECONDS_PER_HOUR = 3600;
 export const FUEL_DENSITY = 740; //grams / liter (g/L)
 export const LITERS_FUEL_IN_GALLON = 3.7854;
+
+export enum FuelStatsOverviewTimeFrame {
+    ONE_WEEK = 'ONE_WEEK',
+    ONE_MONTH = 'ONE_MONTH',
+    THREE_MONTHS = 'THREE_MONTHS',
+    YTD = 'YTD',
+    ALL_TIME = 'ALL_TIME'
+}

@@ -1,4 +1,14 @@
-import * as SQLite from 'expo-sqlite'
+import * as SQLite from 'expo-sqlite';
+
+//migrations
+import * as MV1 from './migrations/1_add_raw_gps_create_at_time_gps_stats_raw';
+import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
+
+const migrations = [MV1]
+
+type UserVersion = {
+    user_version: number;
+}
 
 export async function createDBConnection() {
     try {
@@ -10,7 +20,7 @@ export async function createDBConnection() {
 }
 
 export async function initializeDB(db: SQLite.SQLiteDatabase) {
-    db.withExclusiveTransactionAsync(async () => {
+    await db.withExclusiveTransactionAsync(async () => {
         await db.execAsync(`
             PRAGMA journal_mode = WAL;     
             PRAGMA foreign_keys = ON;
@@ -78,7 +88,28 @@ export async function initializeDB(db: SQLite.SQLiteDatabase) {
 
                 FOREIGN KEY (trip_id) REFERENCES trips(id)
             );
+        `); 
+    });
+
+    await db.withExclusiveTransactionAsync(async () => {
+        const dbVersion: UserVersion | null = await db.getFirstAsync(`
+            PRAGMA user_version;
         `);
 
+        if(!dbVersion) {
+            throw new Error('PRAGMA user_version cannot be null');
+        }
+        
+        console.log(`DATA BASE VERSION ${dbVersion.user_version}`);
+
+        for(const migration of migrations) {
+
+            if(migration.MVersion > dbVersion.user_version) {
+                console.log(`\t Executing migration version ${migration.MVersion}`);
+                await db.runAsync(migration.mUpQuery);
+
+                await db.runAsync(`PRAGMA user_version = ${migration.MVersion}`)
+            }
+        }
     });
 }

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FeatureCollection, LineString } from "geojson";
 import { useLocalSearchParams } from "expo-router";
 import Toast from "react-native-toast-message";
+import { getDB } from "@/db/dbConnSingletonService";
 import { useSQLiteContext } from "expo-sqlite";
 
 Mapbox.setAccessToken(MAPBOX_PUBLIC_KEY);
@@ -24,7 +25,7 @@ export default function TripOverviewScreen() {
 
     const tripId  = useLocalSearchParams<{tripId: string}>();
     console.log(`trip id ${tripId.tripId}`);
-
+    
     const db = useSQLiteContext();
 
     useEffect( () => {

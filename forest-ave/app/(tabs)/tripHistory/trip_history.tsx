@@ -1,18 +1,17 @@
 import { MOCK_TRIPS } from "../../utils/dummyTrips";
 import { FlatList, View } from "react-native";
 import TripHistoryCard from "../../components/tripHistoryCard";
-import { useSQLiteContext } from "expo-sqlite";
 import { Trip, TripsDAO } from "@/db/trips";
 import { useEffect, useState } from "react";
-import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
+import { getDB } from "@/db/dbConnSingletonService";
+import { useSQLiteContext } from "expo-sqlite";
 
 export default function TripHistoryScreen() {
     //logic to read trips from memory and convert to good format
 
     const [trips, setTrips] = useState<Trip[]>([]);
-
+    
     const db = useSQLiteContext();
-    useDrizzleStudio(db);
     
     useEffect(() => {
         const fetchTrips = async () => {

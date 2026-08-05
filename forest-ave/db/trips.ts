@@ -7,6 +7,24 @@ export type TripAggregatedResults = {
     avgMpg: number,
     avgSpeed: number
 }
+
+export type TripRawMpgResults = {
+    instMpg: number,
+    MAF: number,
+    VSS: number,
+    LTFT?: number,
+    STFT?: number,
+    recorded_at: number
+}
+
+export type TripRawGPSResults = {
+    latitude: number,
+    longitude: number,
+    location_accuracy?: number,
+    altitude?: number,
+    altitude_accuracy?: number
+}
+
 export type Trip = {
     id: string,
     vehicleId: string,
@@ -16,6 +34,8 @@ export type Trip = {
     endTime: number | string,
 
     tripAggResults: TripAggregatedResults,
+    tripRawMpgStats: TripRawMpgResults,
+    tripGPSRaws: TripRawGPSResults
 }
 
 interface TripsDAOInterface {
@@ -105,6 +125,11 @@ export class TripsDAO implements TripsDAOInterface {
                 $distance_traveled 
             )  
         `);
+        
+        const tripMPGStatsRaw = await this.dbConn.prepareAsync(`
+            INSERT INTO      
+        `) 
+
         let tripNameToStore = '';
         if(!trip.tripName) {
             tripNameToStore = 'New Trip Name';
