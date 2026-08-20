@@ -88,7 +88,7 @@ export class MpgGpsAggregator {
         console.log('entering add gps data');
         console.log(`CUMULATIVE DISTANCE: ${this.cumulativeDist}`)
         if(this.gpsData.length > 0 ) {
-            const p2pDist = HaversineDistance(this.gpsData[this.gpsData.length - 1], location)
+            const p2pDist = HaversineDistance(this.gpsData[this.gpsData.length - 1].coords, location.coords)
             this.cumulativeDist += p2pDist
             this.totalDistance +=  p2pDist;
         }

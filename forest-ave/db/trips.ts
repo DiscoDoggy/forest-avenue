@@ -1,5 +1,6 @@
 import { MpgRecord } from '@/app/services/mpgPollingService';
-import { convertUnixTimeToLocalDateTime } from '@/app/utils/dateTimeConversion';
+import { convertUnixTimeToLocalDateTimeStr } from '@/app/utils/dateTimeConversion';
+import { FuelStatsOverviewTimeFrame } from '@/constants/mpgConstants';
 import { LocationObject } from 'expo-location';
 import * as SQLite from 'expo-sqlite'
 
@@ -10,21 +11,23 @@ export type TripAggregatedResults = {
     avgSpeed: number
 }
 
-export type TripRawMpgResults = {
-    instMpg: number[],
-    MAF: number[],
-    VSS: number[],
-    LTFT?: number[],
-    STFT?: number[],
-    recorded_at: number[]
+export type TripRawMpgResult = {
+    tripId: string,
+    instMpg: number,
+    MAF: number,
+    VSS: number,
+    LTFT?: number,
+    STFT?: number,
+    recorded_at: number
 }
 
-export type TripRawGPSResults = {
+export type TripRawGPSResult = {
     latitude: number,
     longitude: number,
     location_accuracy?: number,
     altitude?: number,
-    altitude_accuracy?: number
+    altitude_accuracy?: number,
+    recorded_at: number
 }
 
 export type Trip = {
@@ -39,6 +42,11 @@ export type Trip = {
     // tripRawMpgStats: TripRawMpgResults,
     tripRawMpgStats?: MpgRecord[],
     tripGPSRaws?: LocationObject[] 
+}
+
+export type RawTripStats = {
+    rawMpgStats: TripRawMpgResult[],
+    rawGpsStats: TripRawGPSResult[]
 }
 
 interface TripsDAOInterface {
@@ -197,6 +205,8 @@ export class TripsDAO implements TripsDAOInterface {
         } finally {
             await tripInsertStmt.finalizeAsync();
             await tripAggStatsStmt.finalizeAsync();
+            await tripGPSStatsRawInsertStmt.finalizeAsync();
+            await tripMPGStatsRawInsertStmt.finalizeAsync();
         }
     }
 
@@ -214,6 +224,37 @@ export class TripsDAO implements TripsDAOInterface {
         }
     }
 
+    async getRawMpgGpsStatsByTimeFrame(timeframe: FuelStatsOverviewTimeFrame) { 
+        const timeFrameToSQLStr = new Map<FuelStatsOverviewTimeFrame, string>([
+            [FuelStatsOverviewTimeFrame.ONE_WEEK, '-7 days'],
+            [FuelStatsOverviewTimeFrame.ONE_MONTH, '-1 months'],
+            [FuelStatsOverviewTimeFrame.THREE_MONTHS, '-2 months'],
+            [FuelStatsOverviewTimeFrame.YTD, 'start of year'],
+            [FuelStatsOverviewTimeFrame.ALL_TIME, '-40 years']
+        ])
+        
+        const sortedRawMpgStats: TripRawMpgResult[] = await this.dbConn.getAllAsync(`
+            SELECT *
+            FROM trip_mpg_stats_raw
+            WHERE recorded_at >= unixepoch('now', ${timeFrameToSQLStr.get(timeframe)})
+            ORDER BY recorded_at ASC
+        `);
+
+        const sortedGpsStats: TripRawGPSResult[] = await this.dbConn.getAllAsync(`
+            SELECT * 
+            FROM trip_gps_stats_raw
+            WHERE recorded_at >= unixepoch('now', ${timeFrameToSQLStr.get(timeframe)})
+            ORDER BY recorded_at ASC
+        `);
+        
+        const tripRaws: RawTripStats = {
+            rawMpgStats: sortedRawMpgStats,
+            rawGpsStats: sortedGpsStats
+        }
+
+        return tripRaws;
+    }
+
     private convertSQLTripToObject(trip: any) : Trip {
         const aggTripStats: TripAggregatedResults = {
             geoJson: trip.geo_json_line_segments,
@@ -226,8 +267,8 @@ export class TripsDAO implements TripsDAOInterface {
             id: trip.id,
             tripName: trip.trip_name,
             vehicleId: trip.vin,
-            startTime: convertUnixTimeToLocalDateTime(trip.start_time),
-            endTime: convertUnixTimeToLocalDateTime(trip.end_time),
+            startTime: convertUnixTimeToLocalDateTimeStr(trip.start_time),
+            endTime: convertUnixTimeToLocalDateTimeStr(trip.end_time),
             tripAggResults: aggTripStats 
         };
 

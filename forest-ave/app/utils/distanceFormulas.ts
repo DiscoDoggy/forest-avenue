@@ -1,15 +1,15 @@
-import { LocationObject } from "expo-location";
+import { LocationObject, LocationObjectCoords } from "expo-location";
 
-export function HaversineDistance(source: LocationObject, destination: LocationObject) {
+export function HaversineDistance(source: LocationObjectCoords, destination: LocationObjectCoords) {
     /*
    The Haversine formula determines the great-circle distance between 
    two points on a sphere (like Earth) using their latitude and longitude. 
     */
     
-    const sourceLongRad = convertDegsToRads(source.coords.longitude);
-    const sourceLatRad = convertDegsToRads(source.coords.latitude) ;
-    const destLongRad = convertDegsToRads(destination.coords.longitude);
-    const destLatRad = convertDegsToRads(destination.coords.latitude);
+    const sourceLongRad = convertDegsToRads(source.longitude);
+    const sourceLatRad = convertDegsToRads(source.latitude) ;
+    const destLongRad = convertDegsToRads(destination.longitude);
+    const destLatRad = convertDegsToRads(destination.latitude);
 
     const EARTH_RADIUS = 3959.0 //miles
 
