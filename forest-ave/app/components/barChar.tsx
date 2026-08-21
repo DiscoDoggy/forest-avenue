@@ -1,17 +1,20 @@
-import { FuelStatsOverviewTimeFrame } from "@/constants/mpgConstants";
+import { View } from 'react-native';
+import { BarChart } from 'react-native-gifted-charts';
 
-// lets have this bar chart be entierly responsible for fetching the 
-// fuel consumption information by week, month, 3m, etc. 
-// so that it can be fully in control of coloring and how the chart looks
-// hoever the option for picking the aggregation timeline should come externally from 
-// the parent so that the timeframe can be synced across multiple visualizations
-
-interface FuelConsumptionBarChartProps {
-    timeFrame: FuelStatsOverviewTimeFrame
-}
+/*
+the data should be passed in as a [{
+    date
+    fuelConsumption
+}]:
+We can then append keys to each block that contain styling etc.
+*/
 
 export default function FuelConsumptionBarChart() {
 
-    
+    return (
+        <View>
+            <BarChart />
+        </View>
+    );
 
 }

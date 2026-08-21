@@ -1,5 +1,5 @@
 import { MpgRecord } from '@/app/services/mpgPollingService';
-import { convertUnixTimeToLocalDateTimeStr } from '@/app/utils/dateTimeConversion';
+import { convertUnixTimeToLocalDateTimeStr, timeFrameToSQLStr } from '@/app/utils/dateTimeConversion';
 import { FuelStatsOverviewTimeFrame } from '@/constants/mpgConstants';
 import { LocationObject } from 'expo-location';
 import * as SQLite from 'expo-sqlite'
@@ -8,7 +8,10 @@ export type TripAggregatedResults = {
     geoJson: string,
     distanceTraveled: number,
     avgMpg: number,
-    avgSpeed: number
+    avgSpeed: number,
+    fuelConsumption: number | null,
+    tripCost: number | null,
+    currFuelPrice: number | null
 }
 
 export type TripRawMpgResult = {
@@ -47,6 +50,14 @@ export type Trip = {
 export type RawTripStats = {
     rawMpgStats: TripRawMpgResult[],
     rawGpsStats: TripRawGPSResult[]
+}
+
+export type AggregatedFuelStat = {
+    date: string,
+    totalFuelConsumption: number,
+    totalCosts: number,
+    avgCostsPerMile: number,
+    fuelPrice: number
 }
 
 interface TripsDAOInterface {
@@ -127,13 +138,19 @@ export class TripsDAO implements TripsDAOInterface {
                 geo_json_line_segments, 
                 avg_mpg, 
                 avg_speed, 
-                distance_traveled
+                distance_traveled,
+                fuel_consumption,
+                trip_cost,
+                fuel_price
             ) VALUES(
                 $trip_id,
                 $geo_json_line_segments,
                 $avg_mpg,
                 $avg_speed,
-                $distance_traveled 
+                $distance_traveled,
+                $fuel_consumption,
+                $trip_cost,
+                $regional_fuel_price
             )  
         `);
         
@@ -169,7 +186,10 @@ export class TripsDAO implements TripsDAOInterface {
                     $geo_json_line_segments: trip.tripAggResults.geoJson,
                     $avg_mpg: trip.tripAggResults.avgMpg,
                     $avg_speed: trip.tripAggResults.avgSpeed,
-                    $distance_traveled: trip.tripAggResults.distanceTraveled
+                    $distance_traveled: trip.tripAggResults.distanceTraveled,
+                    $fuel_consumption: trip.tripAggResults.fuelConsumption,
+                    $trip_cost: trip.tripAggResults.tripCost,
+                    $regional_fuel_price: trip.tripAggResults.currFuelPrice
                 });
 
                 //raw mpg insert
@@ -225,13 +245,6 @@ export class TripsDAO implements TripsDAOInterface {
     }
 
     async getRawMpgGpsStatsByTimeFrame(timeframe: FuelStatsOverviewTimeFrame) { 
-        const timeFrameToSQLStr = new Map<FuelStatsOverviewTimeFrame, string>([
-            [FuelStatsOverviewTimeFrame.ONE_WEEK, '-7 days'],
-            [FuelStatsOverviewTimeFrame.ONE_MONTH, '-1 months'],
-            [FuelStatsOverviewTimeFrame.THREE_MONTHS, '-2 months'],
-            [FuelStatsOverviewTimeFrame.YTD, 'start of year'],
-            [FuelStatsOverviewTimeFrame.ALL_TIME, '-40 years']
-        ])
         
         const sortedRawMpgStats: TripRawMpgResult[] = await this.dbConn.getAllAsync(`
             SELECT *
@@ -255,12 +268,45 @@ export class TripsDAO implements TripsDAOInterface {
         return tripRaws;
     }
 
+    async getTripAggregatedStatsByTimeFrame(timeframe: FuelStatsOverviewTimeFrame) {
+        const timeFrameToSQLTimeFormat = new Map<FuelStatsOverviewTimeFrame, string>([
+            // [FuelStatsOverviewTimeFrame.ONE_DAY, ``]
+            [FuelStatsOverviewTimeFrame.ONE_WEEK, `strftime('%m-%d', date(t.start_time, 'unixepoch'))`],
+            [FuelStatsOverviewTimeFrame.ONE_MONTH, `strftime('%m-%d', date(t.start_time, 'unixepoch'))`],
+            [FuelStatsOverviewTimeFrame.THREE_MONTHS, `
+                strftime('%m-%d', date(t.start_time, 'unixepoch', 'weekday 1', '-7 days')) || 
+                ' - ' ||
+                strftime('%m-%d', date(t.start_time, 'unixepoch', 'weekday 1', '-1 day')) 
+            `],
+            [FuelStatsOverviewTimeFrame.YTD, `strftime('%m', date(event_timestamp, 'unixepoch'))`]
+        ]);
+
+        const sortedStats: AggregatedFuelStat[] = await this.dbConn.getAllAsync(`
+            SELECT 
+                ${timeFrameToSQLStr.get(timeframe)} AS trip_dates
+                SUM(tra.fuel_consumption) AS total_fuel_consumption,
+                SUM(tra.trip_cost) AS total_fuel_cost,
+                total_fuel_cost / SUM(tra.distance_traveled) AS avg_cost_per_mile,
+                fuel_price
+            FROM trip_results_aggregated tra
+                JOIN trips t ON tra.trip_id = t.id
+            WHERE t.start_time >= unixepoch('now', ${timeFrameToSQLStr.get(timeframe)})
+            GROUP BY trip_dates
+            ORDER BY trip_dates ASC;
+        `);
+
+        return sortedStats;
+    }
+
     private convertSQLTripToObject(trip: any) : Trip {
         const aggTripStats: TripAggregatedResults = {
             geoJson: trip.geo_json_line_segments,
             avgMpg: trip.avg_mpg,
             avgSpeed: trip.avg_speed,
-            distanceTraveled: trip.distance_traveled
+            distanceTraveled: trip.distance_traveled,
+            fuelConsumption: trip.fuel_consumption,
+            tripCost: trip.trip_cost,
+            currFuelPrice: trip.regional_fuel_price
         };
 
         const processedTrip: Trip = {

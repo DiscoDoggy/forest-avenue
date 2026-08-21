@@ -3,8 +3,9 @@ import * as SQLite from 'expo-sqlite';
 //migrations
 import * as MV1 from './migrations/1_add_raw_gps_create_at_time_gps_stats_raw';
 import * as MV2 from './migrations/2_add_location_acc_altitude_acc_trip_gps_raw'
+import * as MV3 from './migrations/3_add_fuel_consumption_trip_costs_trip_results_aggregated'
 
-const migrations = [MV1, MV2]
+const migrations = [MV1, MV2, MV3];
 
 type UserVersion = {
     user_version: number;

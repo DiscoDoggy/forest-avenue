@@ -1,9 +1,18 @@
+import { FuelStatsOverviewTimeFrame } from "@/constants/mpgConstants";
 
 export type DeconstructedDate = {
     day: string;
     month: string;
     year: string;
 }
+
+export const timeFrameToSQLStr = new Map<FuelStatsOverviewTimeFrame, string>([
+    [FuelStatsOverviewTimeFrame.ONE_WEEK, '-7 days'],
+    [FuelStatsOverviewTimeFrame.ONE_MONTH, '-1 months'],
+    [FuelStatsOverviewTimeFrame.THREE_MONTHS, '-2 months'],
+    [FuelStatsOverviewTimeFrame.YTD, 'start of year'],
+    [FuelStatsOverviewTimeFrame.ALL_TIME, '-40 years']
+]);
 
 export function convertUnixTimeToLocalDateTimeStr(unixTimeStamp: number): string {
     console.log(`Timestamp: ${unixTimeStamp}`);

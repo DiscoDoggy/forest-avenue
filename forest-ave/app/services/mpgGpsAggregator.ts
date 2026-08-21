@@ -6,6 +6,7 @@ import { setLocationHistory, useGpsStore } from "./gpsStore";
 import { getDB } from "@/db/dbConnSingletonService";
 import { Trip, TripsDAO } from "@/db/trips";
 import { setMpg } from "./mpgStateStore";
+import { calculateFuelConsumption } from "../utils/mpg";
 
 // type Coordinates = {
 //     longitude: number
@@ -17,15 +18,16 @@ type CoordinatesSegment = {
     longLatPoints: LocationObject[]
 }
 
-type MpgAlongCoordsSegment = {
-    segment: CoordinatesSegment
-    smoothedMpg: number
+type CoordsSegmentStats = {
+    segment: CoordinatesSegment,
+    smoothedMpg: number,
+    fuelConsumption?: number
 }
 
 type AggregatedRawMpgGpsData = {
     rawMpgData: MpgRecord[]
     rawGpsData: LocationObject[]
-    smoothedLinkedMpgGpsSegments: MpgAlongCoordsSegment[]
+    smoothedLinkedMpgGpsSegments: CoordsSegmentStats[]
 }
 
 export type PreliminaryTripInfo = {
@@ -45,7 +47,7 @@ export class MpgGpsAggregator {
     gpsData: LocationObject[];
     mpgData: MpgRecord[];
 
-    shortBuffer: MpgAlongCoordsSegment[];
+    shortBuffer: CoordsSegmentStats[];
     longBuffer: AggregatedRawMpgGpsData;
 
     segmentGeoJson: Feature<Geometry>;
@@ -120,11 +122,13 @@ export class MpgGpsAggregator {
         };
 
         const smoothedMpg = this.cumulativeMpgResetable / this.mpgData.length;
+        const fuelConsumed = calculateFuelConsumption(smoothedMpg, this.cumulativeDist);
 
-        const segmentMpg: MpgAlongCoordsSegment = {
+        const segmentMpg: CoordsSegmentStats = {
             segment: coordSegment,
-            smoothedMpg: smoothedMpg
-        }
+            smoothedMpg: smoothedMpg,
+            fuelConsumption: fuelConsumed
+        };
 
         //create geojson
         let positions = [];
@@ -185,6 +189,16 @@ export class MpgGpsAggregator {
 
         avgSpeed /= this.longBuffer.rawMpgData.length;
 
+        let totalFuelConsumption = 0;
+        for(const segmentStat of this.longBuffer.smoothedLinkedMpgGpsSegments) {
+            if(segmentStat.fuelConsumption) {
+                totalFuelConsumption += segmentStat.fuelConsumption;
+            }
+        }
+
+        //TODO: Make a request or queue a request to figure out what the state fuel costs are or county fuel costs
+        const regionalFuelPrice = 5.45;
+
         const newTrip: Trip = {
             id: this.tripInfo.tripId,
             tripName: this.tripInfo.tripName,
@@ -195,7 +209,10 @@ export class MpgGpsAggregator {
                 geoJson: geoJsonStr,
                 distanceTraveled: this.cumulativeDist,
                 avgMpg: this.cumulativeMpg / this.numMpgCalculations,
-                avgSpeed: avgSpeed
+                avgSpeed: avgSpeed,
+                fuelConsumption: totalFuelConsumption,
+                currFuelPrice: regionalFuelPrice,
+                tripCost: totalFuelConsumption * regionalFuelPrice
             },
             tripRawMpgStats: this.longBuffer.rawMpgData,
             tripGPSRaws: this.longBuffer.rawGpsData
