@@ -141,7 +141,7 @@ export class TripsDAO implements TripsDAOInterface {
                 distance_traveled,
                 fuel_consumption,
                 trip_cost,
-                fuel_price
+                regional_fuel_price
             ) VALUES(
                 $trip_id,
                 $geo_json_line_segments,
@@ -161,7 +161,7 @@ export class TripsDAO implements TripsDAOInterface {
 
         const tripGPSStatsRawInsertStmt = await this.dbConn.prepareAsync(`
             INSERT INTO trip_gps_stats_raw (trip_id, latitude, longitude, location_acc, altitude, altitude_acc, recorded_at) 
-            VALUES ($trip_id, $latitude, $longitude, $location_acc, $altitude, $altitude_acc, $recorded_at)
+            VALUES ($trip_id, $latitude, $longitude, $location_accuracy, $altitude, $altitude_acc, $recorded_at)
         `)
 
         let tripNameToStore = '';
@@ -287,7 +287,7 @@ export class TripsDAO implements TripsDAOInterface {
                 SUM(tra.fuel_consumption) AS total_fuel_consumption,
                 SUM(tra.trip_cost) AS total_fuel_cost,
                 total_fuel_cost / SUM(tra.distance_traveled) AS avg_cost_per_mile,
-                fuel_price
+                regional_fuel_price
             FROM trip_results_aggregated tra
                 JOIN trips t ON tra.trip_id = t.id
             WHERE t.start_time >= unixepoch('now', ${timeFrameToSQLStr.get(timeframe)})

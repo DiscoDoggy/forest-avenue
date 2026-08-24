@@ -85,7 +85,7 @@ export async function initializeDB(db: SQLite.SQLiteDatabase) {
                 longitude REAL NOT NULL,
                 location_accuracy REAL,
                 altitude REAL,
-                altitude_accuracy REAL,
+                altitude_acc REAL,
 
                 FOREIGN KEY (trip_id) REFERENCES trips(id)
             );
@@ -107,7 +107,7 @@ export async function initializeDB(db: SQLite.SQLiteDatabase) {
 
             if(migration.MVersion > dbVersion.user_version) {
                 console.log(`\t Executing migration version ${migration.MVersion}`);
-                await db.runAsync(migration.mUpQuery);
+                await db.execAsync(migration.mUpQuery);
 
                 await db.runAsync(`PRAGMA user_version = ${migration.MVersion}`)
             }

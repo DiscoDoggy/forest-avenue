@@ -1,5 +1,4 @@
 import { AggregatedFuelStat } from '@/db/trips';
-import { View, Text} from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 
 /*
@@ -11,21 +10,38 @@ export type datedFuelConsumption = Pick<AggregatedFuelStat, 'date' | 'totalFuelC
 
 export interface FuelConsumptionProps {
     data: datedFuelConsumption[];
+    chartWidth: number;
 }
 
-export default function FuelConsumptionBarChart({data}: FuelConsumptionProps) {
+export default function FuelConsumptionBarChart({data, chartWidth}: FuelConsumptionProps) {
     // need to convert data to json list
     let processedData = [];
     for(const pair of data) {
         processedData.push({
             label: pair.date,
             value: pair.totalFuelConsumption
-        })
+        });
     }
 
+    const yAxisLabelWidth = 35;
+    const chartAreaWidth = Math.max(chartWidth - yAxisLabelWidth, 0);
+
     return (
-        <BarChart data={processedData} />
-        // <View><Text>Placeholder bar chart</Text></View>
+        <BarChart 
+            data={processedData} 
+            width={chartAreaWidth}
+            height={240}
+            barBorderRadius={16}
+            adjustToWidth={true}
+            disableScroll={true}
+            initialSpacing={8}
+            endSpacing={8}
+            yAxisLabelWidth={yAxisLabelWidth}
+            yAxisThickness={1}
+            xAxisThickness={0}
+            frontColor={'#69ff96'}
+            showReferenceLine1
+        />
     );
 
 }
