@@ -7,8 +7,9 @@ import { tripRecorder } from "../services/serviceContainer";
 import { useGpsStore } from "../services/gpsStore";
 import { useMpgDataStore } from "../services/mpgStateStore";
 import AcceptRejectModal from "../components/acceptRejectModal";
+import { MAPBOX_PUBLIC_KEY } from "../configs/keys";
 
-Mapbox.setAccessToken("pk.eyJ1IjoidGhlZmxpZ2h0bGVzc2JpcmQiLCJhIjoiY21tazN3MTQzMWdybzJ3b2M4dHF0Y3JrZSJ9.vwuF1cIXhLfvYU-p1PL7Hw");
+Mapbox.setAccessToken(MAPBOX_PUBLIC_KEY);
 Mapbox.setTelemetryEnabled(false);
 
 export default function TripMapExperiment() {

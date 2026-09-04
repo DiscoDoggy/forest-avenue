@@ -215,8 +215,6 @@ export class TripsDAO implements TripsDAOInterface {
                             $latitude: record.coords.latitude,
                             $longitude: record.coords.longitude,
                             $location_acc: record.coords.accuracy,
-                            $altitude: record.coords.altitude,
-                            $altitude_acc: record.coords.altitudeAccuracy,
                             $recorded_at: record.timestamp / 1000  // unix time is in seconds
                         });
                     }

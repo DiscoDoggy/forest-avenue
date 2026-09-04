@@ -1,4 +1,4 @@
-import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { createMaterialTopTabNavigator } from "expo-router/js-top-tabs";
 import TripHistoryScreen from "./trip_history";
 import TripsOverview from "./trips_overview";
 

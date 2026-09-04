@@ -83,10 +83,6 @@ export async function initializeDB(db: SQLite.SQLiteDatabase) {
                 trip_id TEXT NOT NULL,
                 latitude REAL NOT NULL,
                 longitude REAL NOT NULL,
-                location_accuracy REAL,
-                altitude REAL,
-                altitude_acc REAL,
-
                 FOREIGN KEY (trip_id) REFERENCES trips(id)
             );
         `); 
