@@ -8,10 +8,11 @@ export const FUEL_DENSITY = 740; //grams / liter (g/L)
 export const LITERS_FUEL_IN_GALLON = 3.7854;
 
 export enum FuelStatsOverviewTimeFrame {
-    ONE_DAY = 'ONE_DAY',
     ONE_WEEK = 'ONE_WEEK',
     ONE_MONTH = 'ONE_MONTH',
     THREE_MONTHS = 'THREE_MONTHS',
+    SIX_MONTHS = 'SIX_MONTHS',
+    ONE_YEAR = 'ONE_YEAR',
     YTD = 'YTD',
     ALL_TIME = 'ALL_TIME'
 }

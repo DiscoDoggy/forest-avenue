@@ -60,6 +60,46 @@ export type AggregatedFuelStat = {
     fuelPrice: number
 }
 
+export type TimeFrameConfig = {
+  groupingSql: string;
+  whereModifierSql: string | null;
+};
+
+const TIMEFRAME_SQL_MAP: Record<FuelStatsOverviewTimeFrame, TimeFrameConfig> = {
+  [FuelStatsOverviewTimeFrame.ONE_WEEK]: {
+    groupingSql: `strftime('%m-%d', datetime(t.start_time, 'unixepoch', 'localtime'))`,
+    whereModifierSql: `'-7 days'`,
+  },
+  [FuelStatsOverviewTimeFrame.ONE_MONTH]: {
+    groupingSql: `strftime('%m-%d', datetime(t.start_time, 'unixepoch', 'localtime'))`,
+    whereModifierSql: `'-1 month'`,
+  },
+  [FuelStatsOverviewTimeFrame.THREE_MONTHS]: {
+    groupingSql: `
+      strftime('%m-%d', datetime(t.start_time, 'unixepoch', 'localtime', 'weekday 1', '-7 days')) || 
+      ' - ' || 
+      strftime('%m-%d', datetime(t.start_time, 'unixepoch', 'localtime', 'weekday 1', '-1 day'))
+    `,
+    whereModifierSql: `'-3 months'`,
+  },
+  [FuelStatsOverviewTimeFrame.SIX_MONTHS]: {
+    groupingSql: `strftime('%Y-%m', datetime(t.start_time, 'unixepoch', 'localtime'))`,
+    whereModifierSql: `'-6 months'`,
+  },
+  [FuelStatsOverviewTimeFrame.ONE_YEAR]: {
+    groupingSql: `strftime('%Y-%m', datetime(t.start_time, 'unixepoch', 'localtime'))`,
+    whereModifierSql: `'-1 year'`,
+  },
+  [FuelStatsOverviewTimeFrame.YTD]: {
+    groupingSql: `strftime('%m', datetime(t.start_time, 'unixepoch', 'localtime'))`,
+    whereModifierSql: `'start of year'`,
+  },
+  [FuelStatsOverviewTimeFrame.ALL_TIME]: {
+    groupingSql: `strftime('%Y-%m', datetime(t.start_time, 'unixepoch', 'localtime'))`,
+    whereModifierSql: null, // No lower time bound
+  },
+};
+
 interface TripsDAOInterface {
     getAllTrips(): Promise<Trip[]>,
     getTripById(id: string): Promise<Trip | null> ,
@@ -267,30 +307,32 @@ export class TripsDAO implements TripsDAOInterface {
     }
 
     async getTripAggregatedStatsByTimeFrame(timeframe: FuelStatsOverviewTimeFrame) {
-        const timeFrameToSQLTimeFormat = new Map<FuelStatsOverviewTimeFrame, string>([
-            // [FuelStatsOverviewTimeFrame.ONE_DAY, ``]
-            [FuelStatsOverviewTimeFrame.ONE_WEEK, `strftime('%m-%d', date(t.start_time, 'unixepoch'))`],
-            [FuelStatsOverviewTimeFrame.ONE_MONTH, `strftime('%m-%d', date(t.start_time, 'unixepoch'))`],
-            [FuelStatsOverviewTimeFrame.THREE_MONTHS, `
-                strftime('%m-%d', date(t.start_time, 'unixepoch', 'weekday 1', '-7 days')) || 
-                ' - ' ||
-                strftime('%m-%d', date(t.start_time, 'unixepoch', 'weekday 1', '-1 day')) 
-            `],
-            [FuelStatsOverviewTimeFrame.YTD, `strftime('%m', date(event_timestamp, 'unixepoch'))`]
-        ]);
+        const config = TIMEFRAME_SQL_MAP[timeframe];
+
+        const whereClause = config.whereModifierSql
+            ? `WHERE t.start_time >= unixepoch('now', ${config.whereModifierSql}, 'start of day')`
+            : '';
+
+        if (!config) {
+            throw new Error(`Unsupported timeframe: ${timeframe}`);
+        }
 
         const sortedStats: AggregatedFuelStat[] = await this.dbConn.getAllAsync(`
             SELECT 
-                ${timeFrameToSQLStr.get(timeframe)} AS trip_dates
-                SUM(tra.fuel_consumption) AS total_fuel_consumption,
-                SUM(tra.trip_cost) AS total_fuel_cost,
-                total_fuel_cost / SUM(tra.distance_traveled) AS avg_cost_per_mile,
-                regional_fuel_price
+            ${config.groupingSql} AS trip_dates,
+            SUM(tra.fuel_consumption) AS total_fuel_consumption,
+            SUM(tra.trip_cost) AS total_fuel_cost,
+            CASE 
+                WHEN SUM(tra.distance_traveled) > 0 
+                THEN SUM(tra.trip_cost) / SUM(tra.distance_traveled) 
+                ELSE 0 
+            END AS avg_cost_per_mile,
+            AVG(tra.regional_fuel_price) AS regional_fuel_price
             FROM trip_results_aggregated tra
-                JOIN trips t ON tra.trip_id = t.id
-            WHERE t.start_time >= unixepoch('now', ${timeFrameToSQLStr.get(timeframe)})
+            JOIN trips t ON tra.trip_id = t.id
+            WHERE ${whereClause}
             GROUP BY trip_dates
-            ORDER BY trip_dates ASC;
+            ORDER BY MIN(t.start_time) ASC;
         `);
 
         return sortedStats;
