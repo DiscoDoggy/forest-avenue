@@ -108,5 +108,10 @@ export async function initializeDB(db: SQLite.SQLiteDatabase) {
                 await db.runAsync(`PRAGMA user_version = ${migration.MVersion}`)
             }
         }
+
+        if(process.env.EXPO_PUBLIC_ENV === "development" && process.env.EXPO_PUBLIC_SEED_DATABASE === "true") {
+            // in development builds, have a consistent title for seeded trip names
+            
+        }
     });
 }

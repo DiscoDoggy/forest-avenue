@@ -6,8 +6,8 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Host } from '@expo/ui';
-import SegmentedControl from '@expo/ui/community/segmented-control';
-
+// import SegmentedControl from '@expo/ui/community/segmented-control';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
 
 const mockFuelConsumptionData: datedFuelConsumption[] = [
     { date: 'Mon', totalFuelConsumption: 2.4 },
@@ -83,6 +83,26 @@ export default function TripsOverview() {
                         //explicitly querying the data here is not needed because the state change of timeframe triggers the 
                         //useEffect statement which rerenders everything with the updated data bounded by the timeframe
                     }}
+                    // --- Outer Track Background Color ---
+                    backgroundColor="#111827"
+        
+                    // --- Active Button / Selected Pill Color ---
+                    tintColor="#2563EB"
+                    
+                    // --- Active Selected Text Styles ---
+                    activeFontStyle={{
+                    color: '#FFFFFF',
+                    fontWeight: '700',
+                    fontSize: 13,
+                    }}
+                    
+                    // --- Inactive / Unselected Text Styles ---
+                    fontStyle={{
+                        color: '#9CA3AF',
+                        fontWeight: '500',
+                        fontSize: 13,
+                    }}
+                    style={{backgroundColor:'#FFFFFF'}}
                 />
                 <TripStatCard>
                     <TripStatCard.Title>Fuel Consumption</TripStatCard.Title>
